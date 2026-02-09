@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Previews Movil · cambachat</title>
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --panel: #141b24;
+      --panel-2: #101620;
+      --line: #2b3648;
+      --text: #e8eef6;
+      --muted: #96a2b5;
+      --accent: #63b3ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Share Tech Mono", "Consolas", "Menlo", "Courier New", monospace;
+      background: linear-gradient(180deg, #090c12, #0b101a 60%, #090c12);
+      color: var(--text);
+      padding: 24px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: #0f141d;
+      border: 1px solid #243041;
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.4);
+    }
+
+    .title {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .phone {
+      aspect-ratio: 9 / 19.5;
+      border-radius: 22px;
+      border: 1px solid #2a3547;
+      background: #101722;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 48px 1fr 58px;
+      position: relative;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      font-size: 11px;
+      border-bottom: 1px solid #1e2736;
+    }
+
+    .messages {
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+      overflow: hidden;
+    }
+
+    .msg {
+      background: rgba(255,255,255,0.04);
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 11px;
+    }
+
+    .msg.me {
+      background: rgba(99,179,255,0.15);
+      border: 1px solid rgba(99,179,255,0.35);
+    }
+
+    .input {
+      border-top: 1px solid #1e2736;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 8px;
+      padding: 0 10px;
+      font-size: 11px;
+    }
+
+    .input .bar {
+      height: 34px;
+      border-radius: 8px;
+      background: #0f141d;
+      border: 1px solid #2a3444;
+    }
+
+    .chip {
+      height: 28px;
+      padding: 0 10px;
+      border-radius: 999px;
+      border: 1px solid #2a3444;
+      background: #0f141d;
+      display: grid;
+      place-items: center;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #7ee787;
+    }
+
+    .tabbar {
+      position: absolute;
+      bottom: 58px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-around;
+      padding: 6px 0;
+      background: rgba(13,18,26,0.8);
+      border-top: 1px solid #1e2736;
+      font-size: 10px;
+    }
+
+    /* MSN Retro */
+    .msn .phone { background: #0f1220; }
+    .msn .status { background: #1a2333; }
+    .msn .msg { border: 1px solid #233047; }
+    .msn .chip { background: #1b2536; }
+
+    /* Moderno Minimal */
+    .modern .phone { background: #10151d; }
+    .modern .msg { background: #141c28; border: 1px solid #202b3a; }
+    .modern .msg.me { background: #1d3149; }
+
+    /* Neon */
+    .neon .phone { background: #0b0e14; }
+    .neon .status { background: #121a26; color: #9be7ff; }
+    .neon .msg { border: 1px solid rgba(123,97,255,0.5); }
+    .neon .msg.me { background: rgba(123,97,255,0.2); }
+    .neon .chip { border: 1px solid rgba(99,255,205,0.5); }
+  </style>
+</head>
+<body>
+  <div class="grid">
+    <div class="card msn">
+      <div class="title">MSN Retro</div>
+      <div class="phone">
+        <div class="status">
+          <div class="header"><span class="dot"></span> #general</div>
+          <div>4G · 12:40</div>
+        </div>
+        <div class="messages">
+          <div class="msg">alex: ¿listos?</div>
+          <div class="msg me">tú: ya casi</div>
+          <div class="msg">noa: zumbido!</div>
+          <div class="msg">sara: link del meet</div>
+        </div>
+        <div class="tabbar">
+          <div>Chat</div>
+          <div>Salas</div>
+          <div>Perfil</div>
+        </div>
+        <div class="input">
+          <div class="bar"></div>
+          <div class="chip">▶</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card modern">
+      <div class="title">Moderno Minimal</div>
+      <div class="phone">
+        <div class="status">
+          <div class="header"><span class="dot"></span> #general</div>
+          <div>LTE · 12:40</div>
+        </div>
+        <div class="messages">
+          <div class="msg">maru: dejo el resumen</div>
+          <div class="msg me">tú: perfecto</div>
+          <div class="msg">luis: nos vemos</div>
+          <div class="msg">noa: ok</div>
+        </div>
+        <div class="tabbar">
+          <div>Chat</div>
+          <div>Salas</div>
+          <div>Perfil</div>
+        </div>
+        <div class="input">
+          <div class="bar"></div>
+          <div class="chip">Enviar</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card neon">
+      <div class="title">Neon</div>
+      <div class="phone">
+        <div class="status">
+          <div class="header"><span class="dot"></span> #general</div>
+          <div>5G · 12:40</div>
+        </div>
+        <div class="messages">
+          <div class="msg">pancho: tema nuevo</div>
+          <div class="msg me">tú: suena bien</div>
+          <div class="msg">sara: 🔥</div>
+          <div class="msg">noa: mood nocturno</div>
+        </div>
+        <div class="tabbar">
+          <div>Chat</div>
+          <div>Salas</div>
+          <div>Perfil</div>
+        </div>
+        <div class="input">
+          <div class="bar"></div>
+          <div class="chip">Zzz</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emojis Preview</title>
+  <style>
+    body { margin:0; font-family: "Share Tech Mono", monospace; background:#0b0f14; color:#e9f0ff; padding:24px; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap:20px; }
+    .card { background:#0f141d; border:1px solid #2a3550; border-radius:14px; padding:14px; box-shadow:0 14px 40px rgba(0,0,0,.4); }
+    .title { font-size:13px; color:#8fa2c7; margin-bottom:10px; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; }
+    .emoji { font-size:22px; padding:6px 8px; border-radius:8px; border:1px solid #2a3550; background:#101622; }
+    .sticker { font-size:22px; width:38px; height:38px; display:grid; place-items:center; border-radius:10px; background:rgba(123,97,255,.18); border:1px solid rgba(123,97,255,.45); box-shadow:0 0 10px rgba(123,97,255,.25); }
+    .popup { border:1px solid #2a3550; border-radius:12px; padding:10px; background:#0c111b; }
+    .fav { display:flex; gap:6px; margin-bottom:8px; }
+    .chip { padding:4px 8px; border-radius:999px; background:#101622; border:1px solid #2a3550; font-size:11px; }
+  </style>
+</head>
+<body>
+  <div class="grid">
+    <div class="card">
+      <div class="title">Unicode clásico (panel fijo)</div>
+      <div class="row">
+        <div class="emoji">😀</div><div class="emoji">😎</div><div class="emoji">😂</div><div class="emoji">🥳</div>
+        <div class="emoji">🔥</div><div class="emoji">❤️</div><div class="emoji">🚀</div><div class="emoji">✨</div>
+        <div class="emoji">🤖</div><div class="emoji">🎧</div><div class="emoji">👾</div><div class="emoji">💡</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="title">Sticker‑like neon (panel fijo)</div>
+      <div class="row">
+        <div class="sticker">😈</div><div class="sticker">😵‍💫</div><div class="sticker">🤖</div><div class="sticker">👾</div>
+        <div class="sticker">🔥</div><div class="sticker">⚡</div><div class="sticker">💜</div><div class="sticker">🛸</div>
+        <div class="sticker">🎛️</div><div class="sticker">🎧</div><div class="sticker">🌙</div><div class="sticker">✨</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="title">Selector pop‑up (mock)</div>
+      <div class="popup">
+        <div class="fav">
+          <div class="chip">🙂 Recientes</div>
+          <div class="chip">🔥 Reacciones</div>
+          <div class="chip">🎵 Musica</div>
+          <div class="chip">👾 Neon</div>
+        </div>
+        <div class="row">
+          <div class="sticker">🙂</div><div class="sticker">😂</div><div class="sticker">🤯</div><div class="sticker">😍</div>
+          <div class="sticker">🔥</div><div class="sticker">💥</div><div class="sticker">⚡</div><div class="sticker">💎</div>
+          <div class="sticker">🎧</div><div class="sticker">🎵</div><div class="sticker">🎛️</div><div class="sticker">👾</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
