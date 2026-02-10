@@ -16,6 +16,7 @@ const USERS_FILE = path.join(__dirname, "users.json");
 const BANS_FILE = path.join(__dirname, "bans.json");
 const ROOMS_FILE = path.join(__dirname, "rooms.json");
 const DMS_FILE = path.join(__dirname, "dms.json");
+const BOTS_FILE = path.join(__dirname, "bots.json");
 const MOD_LOG = path.join(__dirname, "moderation.log");
 const SALT_ROUNDS = 10;
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
@@ -29,6 +30,7 @@ const roomUsers = new Map();
 let accounts = loadUsers();
 normalizeAccounts();
 let bans = loadBans();
+let bots = loadBots();
 const muted = new Set();
 const ipMessageBuckets = new Map();
 const ipAuthBuckets = new Map();
@@ -151,6 +153,21 @@ function saveRooms() {
   for (const [room, list] of messagesByRoom.entries()) obj[room] = list;
   fs.writeFileSync(ROOMS_FILE, JSON.stringify(obj, null, 2));
 }
+
+function loadBots() {
+  try {
+    const raw = fs.readFileSync(BOTS_FILE, "utf-8");
+    const data = JSON.parse(raw);
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveBots() {
+  fs.writeFileSync(BOTS_FILE, JSON.stringify(bots, null, 2));
+}
+
 
 function normalizeRoom(room) {
   let name = String(room || "").trim().toLowerCase();
@@ -283,9 +300,60 @@ function updateRooms() {
   broadcast({ type: "rooms", rooms: roomList() });
 }
 
+function ensureBotUser(bot) {
+  if (!bot || !bot.nick) return;
+  if (Array.from(users.values()).some((u) => u.nick === bot.nick)) return;
+  const id = `bot_${bot.nick}`;
+  const user = {
+    id,
+    nick: bot.nick,
+    status: bot.status || "bot",
+    lastActive: nowTime(),
+    authenticated: true,
+    room: getRoom(bot.room || "#general"),
+    role: "bot",
+    msgTimes: [],
+    lastNudge: 0,
+    bio: bot.bio || "Bot de ayuda",
+    color: bot.color || "#63b3ff",
+    avatar: bot.avatar || "",
+    ip: "",
+    blocked: []
+  };
+  users.set(id, user);
+  roomUsers.get(user.room).add(user.id);
+}
+
+function broadcastBotMessage(bot, text) {
+  if (!bot) return;
+  const room = getRoom(bot.room || "#general");
+  const msg = {
+    type: "message",
+    id: `b_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    nick: bot.nick,
+    text,
+    time: nowTime(),
+    reactions: {},
+    color: bot.color || "#63b3ff",
+    avatar: bot.avatar || ""
+  };
+  pushMessage(room, msg);
+  broadcastToRoom(room, { type: "message", message: msg });
+}
+
+
 function makeGuest() {
   return `guest${Math.floor(100 + Math.random() * 900)}`;
 }
+
+const botTriggers = [
+  { match: /precio|costo|vale/i, reply: "Escribe el precio y si haces envíos. Ej: $120 y envío." },
+  { match: /envio|delivery|entrega/i, reply: "Indica ciudad y forma de entrega." },
+  { match: /contacto|whatsapp|telefono/i, reply: "Comparte un medio de contacto si deseas venta rápida." },
+  { match: /reglas|spam/i, reply: "Reglas: respeto, nada de spam, publicaciones claras." }
+];
+
+const botCooldown = new Map();
 
 function isNickOnline(nick) {
   return Array.from(users.values()).some((u) => u.authenticated && u.nick === nick);
@@ -536,6 +604,9 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+
+// inicializar bots
+bots.forEach((b) => ensureBotUser(b));
 wss.on("connection", (ws) => {
   const id = `u_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   ws.__id = id;
@@ -981,6 +1052,19 @@ wss.on("connection", (ws) => {
       broadcastToRoom(u.room, { type: "message", message: msg });
       updatePresence(u.room);
       return;
+
+      // bot triggers
+      const bot = bots[0];
+      if (bot && text) {
+        const last = botCooldown.get(u.room) || 0;
+        if (Date.now() - last > 8000) {
+          const hit = botTriggers.find((t) => t.match.test(text));
+          if (hit) {
+            botCooldown.set(u.room, Date.now());
+            setTimeout(() => broadcastBotMessage(bot, hit.reply), 600 + Math.random() * 600);
+          }
+        }
+      }
     }
 
     if (payload.type === "command") {
@@ -1047,11 +1131,67 @@ wss.on("connection", (ws) => {
         return;
       }
 
+
+      if (cmd === "bot") {
+        if (!u || u.role !== "admin") {
+          ws.send(JSON.stringify({ type: "system", text: "Solo admin puede usar /bot" }));
+          return;
+        }
+        const parts = args.split(" ").filter(Boolean);
+        const sub = (parts.shift() || "").toLowerCase();
+        if (sub === "list") {
+          const names = bots.map((b) => `${b.nick} (${b.room})`).join(", ") || "Sin bots";
+          ws.send(JSON.stringify({ type: "system", text: names }));
+          return;
+        }
+        if (sub === "add") {
+          const nick = parts.shift();
+          const room = parts.shift() || "#general";
+          if (!nick) {
+            ws.send(JSON.stringify({ type: "system", text: "Uso: /bot add nick #sala" }));
+            return;
+          }
+          if (bots.some((b) => b.nick === nick)) {
+            ws.send(JSON.stringify({ type: "system", text: "Ese bot ya existe." }));
+            return;
+          }
+          const bot = { nick, room, status: "bot", bio: "Bot de ayuda", color: "#63b3ff" };
+          bots.push(bot);
+          saveBots();
+          ensureBotUser(bot);
+          ws.send(JSON.stringify({ type: "system", text: `Bot ${nick} creado en ${room}` }));
+          updatePresence(getRoom(room));
+          updateRooms();
+          return;
+        }
+        if (sub === "remove") {
+          const nick = parts.shift();
+          if (!nick) {
+            ws.send(JSON.stringify({ type: "system", text: "Uso: /bot remove nick" }));
+            return;
+          }
+          bots = bots.filter((b) => b.nick !== nick);
+          saveBots();
+          // remove bot user
+          for (const [id, usr] of users.entries()) {
+            if (usr.nick === nick && usr.role === "bot") {
+              roomUsers.get(usr.room)?.delete(id);
+              users.delete(id);
+            }
+          }
+          ws.send(JSON.stringify({ type: "system", text: `Bot ${nick} eliminado.` }));
+          updatePresence(getRoom("#general"));
+          updateRooms();
+          return;
+        }
+        ws.send(JSON.stringify({ type: "system", text: "Uso: /bot add|remove|list" }));
+        return;
+      }
       if (cmd === "help") {
         ws.send(
           JSON.stringify({
             type: "system",
-            text: "Comandos: /join, /rooms, /me, /status, /nudge, /dm, /help, /clear"
+            text: "Comandos: /join, /rooms, /me, /status, /nudge, /dm, /bot, /help, /clear"
           })
         );
         return;
