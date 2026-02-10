@@ -263,10 +263,16 @@ function roomList() {
   for (const name of roomUsers.keys()) names.add(name);
   if (!names.size) names.add("#general");
 
-  return Array.from(names).map((name) => ({
+  const items = Array.from(names).map((name) => ({
     name,
     count: roomUsers.get(name)?.size || 0
   }));
+  items.sort((a, b) => {
+    if (a.name === "#general") return -1;
+    if (b.name === "#general") return 1;
+    return a.name.localeCompare(b.name);
+  });
+  return items;
 }
 
 function updatePresence(room) {

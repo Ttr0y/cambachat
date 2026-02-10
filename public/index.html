@@ -38,8 +38,8 @@
     }
 
     .window {
-      width: min(1120px, 96vw);
-      height: min(740px, 94vh);
+      width: min(1480px, 98vw);
+      height: min(900px, 96vh);
       background: var(--panel);
       border: 1px solid rgba(123, 97, 255, 0.45);
       border-radius: 12px;
@@ -585,6 +585,9 @@
     }
 
     .profile-modal {
+      max-height: min(86vh, 720px);
+      overflow: auto;
+    
       width: min(460px, 92vw);
       background: #0f141d;
       border: 1px solid var(--line);
@@ -789,6 +792,154 @@
       body[data-view="users"] .sidebar { display: grid; }
       .statusbar { display: none; }
     }
+  
+    .profile-actions.sticky {
+      position: sticky;
+      bottom: 0;
+      background: linear-gradient(180deg, rgba(14,20,34,0) 0%, rgba(14,20,34,0.85) 40%, rgba(14,20,34,0.95) 100%);
+      padding-top: 10px;
+      margin-top: 6px;
+    }
+
+  
+    .stream {
+      display: grid;
+      gap: 12px;
+    }
+
+    .stream-card {
+      position: relative;
+      background: #0b111d;
+      border: 1px solid rgba(123, 97, 255, 0.35);
+      border-radius: 14px;
+      padding: 12px;
+      min-height: 260px;
+      display: grid;
+      gap: 12px;
+      box-shadow: 0 16px 30px rgba(0,0,0,0.35);
+      overflow: hidden;
+    }
+
+    .stream-media {
+      position: relative;
+      border-radius: 12px;
+      height: 180px;
+      background: radial-gradient(circle at 65% 20%, rgba(255,255,255,0.15), transparent 40%),
+                  radial-gradient(circle at 30% 65%, rgba(123,97,255,0.35), transparent 45%),
+                  linear-gradient(160deg, #0a0f1d, #0f1a2e 60%, #0a0d16);
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(123, 97, 255, 0.4);
+    }
+
+    .stream-glow {
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 226, 143, 0.7), rgba(255, 226, 143, 0.05) 60%, transparent 70%);
+      top: 18px;
+      right: 26px;
+      filter: blur(1px);
+    }
+
+    .stream-play {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: rgba(12, 16, 28, 0.8);
+      border: 1px solid rgba(123, 97, 255, 0.5);
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      color: #dbe5ff;
+      box-shadow: 0 0 18px rgba(123, 97, 255, 0.4);
+      z-index: 1;
+    }
+
+    .stream-meta {
+      display: grid;
+      gap: 4px;
+    }
+
+    .stream-title {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .stream-author {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .stream-caption {
+      color: #b6c6ee;
+      font-size: 12px;
+    }
+
+    .stream-actions {
+      position: absolute;
+      right: 12px;
+      top: 60px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .stream-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid rgba(123, 97, 255, 0.5);
+      background: rgba(10, 15, 26, 0.8);
+      color: #dfe7ff;
+      cursor: pointer;
+      box-shadow: 0 0 14px rgba(123, 97, 255, 0.35);
+    }
+
+    .stream-btn:hover {
+      border-color: var(--accent-2);
+      color: var(--accent-2);
+    }
+
+    .stream-queue {
+      display: grid;
+      gap: 8px;
+    }
+
+    .queue-item {
+      display: grid;
+      grid-template-columns: 8px 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(10, 15, 25, 0.7);
+      border: 1px solid rgba(42, 53, 80, 0.5);
+    }
+
+    .queue-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-2);
+      box-shadow: 0 0 8px rgba(99, 255, 200, 0.5);
+    }
+
+    .queue-dot.alt {
+      background: var(--accent);
+      box-shadow: 0 0 8px rgba(123, 97, 255, 0.5);
+    }
+
+    .queue-title {
+      font-size: 12px;
+      color: var(--text);
+    }
+
+    .queue-sub {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
   </style>
 </head>
 <body>
@@ -878,7 +1029,7 @@
         <input id="profileNewPass" type="password" placeholder="••••••" />
       </div>
       <div class="profile-error" id="profileError"></div>
-      <div class="profile-actions">
+      <div class="profile-actions sticky">
         <span class="muted">Los cambios aplican al instante</span>
         <div>
           <button id="profileCancel" type="button" class="mini">Cancelar</button>
@@ -1026,8 +1177,42 @@
       </div>
 
       <aside class="sidebar">
-        <div class="section-title">Usuarios</div>
-        <div class="userlist" id="userList"></div>
+        <div class="section-title">Visualizador</div>
+        <div class="stream" id="stream">
+          <div class="stream-card">
+            <div class="stream-media">
+              <div class="stream-glow"></div>
+              <div class="stream-play">▶</div>
+            </div>
+            <div class="stream-meta">
+              <div class="stream-title">Dream state · Luna</div>
+              <div class="stream-author">@caramba · #pais-argentina</div>
+              <div class="stream-caption">Here for you always ✨</div>
+            </div>
+            <div class="stream-actions">
+              <button class="stream-btn">⟳</button>
+              <button class="stream-btn">❤</button>
+              <button class="stream-btn">💬</button>
+              <button class="stream-btn">↗</button>
+            </div>
+          </div>
+          <div class="stream-queue">
+            <div class="queue-item">
+              <div class="queue-dot"></div>
+              <div>
+                <div class="queue-title">Post musical · #general</div>
+                <div class="queue-sub">Winterpens · 5.5K</div>
+              </div>
+            </div>
+            <div class="queue-item">
+              <div class="queue-dot alt"></div>
+              <div>
+                <div class="queue-title">Clip nocturno · #pais-argentina</div>
+                <div class="queue-sub">Caramba · 272</div>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="motd">
           <strong>Motd</strong><br />
           Respeta a los demás, nada de spam, y comparte música.
@@ -1059,6 +1244,9 @@
     </div>
 
   <script>
+  window.WS_URL = "wss://cambachat-ws-231503681962.southamerica-west1.run.app";
+</script>
+<script>
     const messagesEl = document.getElementById("messages");
     const userListEl = document.getElementById("userList");
     const roomListEl = document.getElementById("roomList");
