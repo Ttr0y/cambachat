@@ -156,9 +156,42 @@ function normalizeRoom(room) {
   let name = String(room || "").trim().toLowerCase();
   if (!name) return "#general";
   if (!name.startsWith("#")) name = `#${name}`;
-  name = name.replace(/[^#a-z0-9_-]/g, "").slice(0, 20);
+  name = name.replace(/[^#a-z0-9_-]/g, "").slice(0, 40);
   if (name.length < 2) return "#general";
   return name;
+}
+
+
+function normalizeRegionPart(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 20);
+}
+
+function buildRegionRooms(country, state, city) {
+  const c = normalizeRegionPart(country);
+  if (!c) return [];
+  const rooms = [`#pais-${c}`];
+  const s = normalizeRegionPart(state);
+  const ci = normalizeRegionPart(city);
+  if (s) rooms.push(`#pais-${c}-${s}`);
+  if (s && ci) rooms.push(`#pais-${c}-${s}-${ci}`);
+  return rooms;
+}
+
+function ensureRegionRooms(country, state, city) {
+  const rooms = buildRegionRooms(country, state, city);
+  rooms.forEach((r) => getRoom(r));
+  return rooms;
+}
+
+function pickDefaultRoom(rooms) {
+  return rooms.length ? rooms[rooms.length - 1] : "#general";
 }
 
 function getRoom(name) {
@@ -217,7 +250,10 @@ function userList(room) {
       lastActive: u.lastActive,
       color: u.color || "",
       avatar: u.avatar || "",
-      bio: u.bio || ""
+      bio: u.bio || "",
+      country: u.country || "",
+      state: u.state || "",
+      city: u.city || ""
     }));
 }
 
@@ -324,12 +360,28 @@ function updateProfile(u, patch) {
   if (typeof patch.avatar === "string") {
     u.avatar = validateAvatar(patch.avatar);
   }
+  if (typeof patch.country === "string") {
+    u.country = patch.country.trim().slice(0, 40);
+  }
+  if (typeof patch.state === "string") {
+    u.state = patch.state.trim().slice(0, 40);
+  }
+  if (typeof patch.city === "string") {
+    u.city = patch.city.trim().slice(0, 40);
+  }
+
+  if (u.country || u.state || u.city) {
+    ensureRegionRooms(u.country, u.state, u.city);
+  }
 
   if (accounts[u.nick]) {
     accounts[u.nick].status = u.status;
     accounts[u.nick].bio = u.bio || "";
     accounts[u.nick].color = u.color || "";
     accounts[u.nick].avatar = u.avatar || "";
+    accounts[u.nick].country = u.country || "";
+    accounts[u.nick].state = u.state || "";
+    accounts[u.nick].city = u.city || "";
     saveUsers();
   }
 }
@@ -501,6 +553,9 @@ wss.on("connection", (ws) => {
     bio: "",
     color: "",
     avatar: "",
+    country: "",
+    state: "",
+    city: "",
     ip,
     blocked: []
   };
@@ -554,8 +609,13 @@ wss.on("connection", (ws) => {
       u.bio = accounts[nick].bio || "";
       u.color = accounts[nick].color || "";
       u.avatar = accounts[nick].avatar || "";
+      u.country = accounts[nick].country || "";
+      u.state = accounts[nick].state || "";
+      u.city = accounts[nick].city || "";
+      const regionRooms = ensureRegionRooms(u.country, u.state, u.city);
+      const preferred = accounts[nick].lastRoom || pickDefaultRoom(regionRooms);
       u.authenticated = true;
-      u.room = getRoom("#general");
+      u.room = getRoom(preferred || "#general");
 
       roomUsers.get(u.room).add(u.id);
 
@@ -625,8 +685,13 @@ wss.on("connection", (ws) => {
       u.bio = accounts[nick].bio || "";
       u.color = accounts[nick].color || "";
       u.avatar = accounts[nick].avatar || photoURL || "";
+      u.country = accounts[nick].country || "";
+      u.state = accounts[nick].state || "";
+      u.city = accounts[nick].city || "";
+      const regionRooms = ensureRegionRooms(u.country, u.state, u.city);
+      const preferred = accounts[nick].lastRoom || pickDefaultRoom(regionRooms);
       u.authenticated = true;
-      u.room = getRoom("#general");
+      u.room = getRoom(preferred || "#general");
 
       roomUsers.get(u.room).add(u.id);
 
@@ -658,6 +723,9 @@ wss.on("connection", (ws) => {
       const nick = String(payload.nick || "").trim();
       const password = String(payload.password || "").trim();
       const status = String(payload.status || "").trim();
+      const country = String(payload.country || "").trim();
+      const state = String(payload.state || "").trim();
+      const city = String(payload.city || "").trim();
 
       if (!nick || !password) {
         ws.send(JSON.stringify({ type: "auth_error", text: "Nick y contraseña requeridos." }));
@@ -680,7 +748,11 @@ wss.on("connection", (ws) => {
         color: "",
         avatar: "",
         tokens: [],
-        blocked: []
+        blocked: [],
+        country: country.slice(0, 40),
+        state: state.slice(0, 40),
+        city: city.slice(0, 40),
+        lastRoom: ""
       };
       await setPassword(nick, password);
 
@@ -691,8 +763,13 @@ wss.on("connection", (ws) => {
       u.color = accounts[nick].color || "";
       u.avatar = accounts[nick].avatar || "";
       u.blocked = accounts[nick].blocked || [];
+      u.country = accounts[nick].country || "";
+      u.state = accounts[nick].state || "";
+      u.city = accounts[nick].city || "";
+      const regionRooms = ensureRegionRooms(u.country, u.state, u.city);
+      accounts[nick].lastRoom = pickDefaultRoom(regionRooms);
       u.authenticated = true;
-      u.room = getRoom("#general");
+      u.room = getRoom(accounts[nick].lastRoom || "#general");
 
       roomUsers.get(u.room).add(u.id);
 
@@ -739,8 +816,13 @@ wss.on("connection", (ws) => {
       u.color = accounts[nick].color || "";
       u.avatar = accounts[nick].avatar || "";
       u.blocked = accounts[nick].blocked || [];
+      u.country = accounts[nick].country || "";
+      u.state = accounts[nick].state || "";
+      u.city = accounts[nick].city || "";
+      const regionRooms = ensureRegionRooms(u.country, u.state, u.city);
+      accounts[nick].lastRoom = pickDefaultRoom(regionRooms);
       u.authenticated = true;
-      u.room = getRoom("#general");
+      u.room = getRoom(accounts[nick].lastRoom || "#general");
 
       roomUsers.get(u.room).add(u.id);
 
@@ -787,7 +869,11 @@ wss.on("connection", (ws) => {
           color: oldAccount.color || "",
           avatar: oldAccount.avatar || "",
           tokens: oldAccount.tokens || [],
-          blocked: oldAccount.blocked || []
+          blocked: oldAccount.blocked || [],
+          country: oldAccount.country || "",
+          state: oldAccount.state || "",
+          city: oldAccount.city || "",
+          lastRoom: oldAccount.lastRoom || ""
         };
         saveUsers();
         u.nick = nextNick.slice(0, 18);
@@ -908,6 +994,10 @@ wss.on("connection", (ws) => {
           systemMessage(next, `${u.nick} entró.`);
           updatePresence(next);
           updateRooms();
+          if (accounts[u.nick]) {
+            accounts[u.nick].lastRoom = u.room;
+            saveUsers();
+          }
         }
         ws.send(JSON.stringify({ type: "room_sync", room: u.room, messages: roomHistory(u.room), users: userList(u.room) }));
         return;
@@ -1070,6 +1160,9 @@ wss.on("connection", (ws) => {
 
     if (payload.type === "setStatus") {
       const status = String(payload.status || "").trim();
+      const country = String(payload.country || "").trim();
+      const state = String(payload.state || "").trim();
+      const city = String(payload.city || "").trim();
       if (!status) return;
       u.status = status.slice(0, 40);
       if (accounts[u.nick]) {

@@ -811,13 +811,25 @@
         <label for="authStatus">Estado</label>
         <input id="authStatus" type="text" placeholder="listo, away, ocupado..." />
       </div>
+      <div class="field" id="countryField" style="display:none;">
+        <label for="authCountry">País</label>
+        <input id="authCountry" type="text" placeholder="Perú, Chile, México..." />
+      </div>
+      <div class="field" id="stateField" style="display:none;">
+        <label for="authState">Estado / Depto.</label>
+        <input id="authState" type="text" placeholder="Lima, Antioquia, CDMX..." />
+      </div>
+      <div class="field" id="cityField" style="display:none;">
+        <label for="authCity">Ciudad</label>
+        <input id="authCity" type="text" placeholder="Lima, Medellín, Guadalajara..." />
+      </div>
       <div class="field">
         <label><input id="rememberMe" type="checkbox" checked /> Recordar sesión</label>
       </div>
       <div class="auth-error" id="authError"></div>
       <div class="auth-actions">
-        <span class="muted">Acceso rápido con Google</span>
-        <button id="googleBtn" type="button">Entrar con Google</button>
+        <button id="authPrimaryBtn" type="button">Entrar</button>
+        <button id="authSecondaryBtn" type="button">Crear cuenta</button>
       </div>
     </div>
   </div>
@@ -832,6 +844,18 @@
       <div class="field">
         <label for="profileStatus">Estado</label>
         <input id="profileStatus" type="text" placeholder="listo, away, ocupado..." />
+      </div>
+      <div class="field">
+        <label for="profileCountry">País</label>
+        <input id="profileCountry" type="text" placeholder="Perú, Chile, México..." />
+      </div>
+      <div class="field">
+        <label for="profileState">Estado / Depto.</label>
+        <input id="profileState" type="text" placeholder="Lima, Antioquia, CDMX..." />
+      </div>
+      <div class="field">
+        <label for="profileCity">Ciudad</label>
+        <input id="profileCity" type="text" placeholder="Lima, Medellín, Guadalajara..." />
       </div>
       <div class="field">
         <label for="profileBio">Bio corta</label>
@@ -872,6 +896,7 @@
         <div>
           <div id="viewNick" class="nick">-</div>
           <div id="viewStatus">-</div>
+          <div id="viewRegion" class="bio">-</div>
           <div id="viewBio" class="bio">-</div>
         </div>
       </div>
@@ -935,6 +960,7 @@
               <div>
                 <div id="selfNick" class="nick">-</div>
                 <div id="selfStatus">-</div>
+                <div id="selfRegion" class="bio">-</div>
                 <div id="selfBio" class="bio">-</div>
               </div>
             </div>
@@ -1049,6 +1075,7 @@
     const userCount = document.getElementById("userCount");
     const selfNick = document.getElementById("selfNick");
     const selfStatus = document.getElementById("selfStatus");
+    const selfRegion = document.getElementById("selfRegion");
     const selfActive = document.getElementById("selfActive");
     const selfBio = document.getElementById("selfBio");
     const selfAvatar = document.getElementById("selfAvatar");
@@ -1063,14 +1090,24 @@
     const authNick = document.getElementById("authNick");
     const authPass = document.getElementById("authPass");
     const authStatus = document.getElementById("authStatus");
+    const authCountry = document.getElementById("authCountry");
+    const authState = document.getElementById("authState");
+    const authCity = document.getElementById("authCity");
     const statusField = document.getElementById("statusField");
-    const googleBtn = document.getElementById("googleBtn");
+    const countryField = document.getElementById("countryField");
+    const stateField = document.getElementById("stateField");
+    const cityField = document.getElementById("cityField");
+    const authPrimaryBtn = document.getElementById("authPrimaryBtn");
+    const authSecondaryBtn = document.getElementById("authSecondaryBtn");
     const authError = document.getElementById("authError");
     const rememberMe = document.getElementById("rememberMe");
 
     const profileOverlay = document.getElementById("profileOverlay");
     const profileNick = document.getElementById("profileNick");
     const profileStatus = document.getElementById("profileStatus");
+    const profileCountry = document.getElementById("profileCountry");
+    const profileState = document.getElementById("profileState");
+    const profileCity = document.getElementById("profileCity");
     const profileBio = document.getElementById("profileBio");
     const profileColor = document.getElementById("profileColor");
     const profileAvatar = document.getElementById("profileAvatar");
@@ -1084,6 +1121,7 @@
     const viewAvatar = document.getElementById("viewAvatar");
     const viewNick = document.getElementById("viewNick");
     const viewStatus = document.getElementById("viewStatus");
+    const viewRegion = document.getElementById("viewRegion");
     const viewBio = document.getElementById("viewBio");
     const viewActive = document.getElementById("viewActive");
     const viewClose = document.getElementById("viewClose");
@@ -1137,21 +1175,6 @@
 
     const quickEmojis = ["👍", "😂", "🔥", "❤️"];
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDEHHOYxPgMW5SeuyNcHfF2fRaxmbHAanw",
-      authDomain: "chat-69e73.firebaseapp.com",
-      databaseURL: "https://chat-69e73-default-rtdb.firebaseio.com",
-      projectId: "chat-69e73",
-      storageBucket: "chat-69e73.firebasestorage.app",
-      messagingSenderId: "231503681962",
-      appId: "1:231503681962:web:d6b690c8432e6c00fb33d3",
-      measurementId: "G-3FHYKEY6NM"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const provider = new firebase.auth.GoogleAuthProvider();
-
     const WS_URL = window.WS_URL || window.__WS_URL || localStorage.getItem("ws_url") || "";
 
     function connect() {
@@ -1164,18 +1187,6 @@
         schedulePing();
         if (authToken) {
           ws.send(JSON.stringify({ type: "auth_token", token: authToken }));
-        }
-        if (auth.currentUser) {
-          auth.currentUser.getIdToken().then((token) => {
-            ws.send(JSON.stringify({
-              type: "firebase_auth",
-              token,
-              uid: auth.currentUser.uid,
-              email: auth.currentUser.email,
-              displayName: auth.currentUser.displayName,
-              photoURL: auth.currentUser.photoURL
-            }));
-          });
         }
       });
 
@@ -1416,9 +1427,13 @@
 
     function updateProfile() {
       const nickColor = self && self.color ? self.color : "";
+      const region = self && (self.country || self.state || self.city)
+        ? [self.country, self.state, self.city].filter(Boolean).join(" · ")
+        : "-";
       selfNick.textContent = self ? self.nick : "-";
       selfNick.style.color = nickColor || "";
       selfStatus.textContent = self ? self.status : "-";
+      if (selfRegion) selfRegion.textContent = region;
       selfBio.textContent = self && self.bio ? self.bio : "-";
       selfActive.textContent = self ? self.lastActive : "-";
       selfAvatar.src = self && self.avatar ? self.avatar : "";
@@ -1673,7 +1688,12 @@
       mode = next;
       tabLogin.classList.toggle("active", mode === "login");
       tabRegister.classList.toggle("active", mode === "register");
-      statusField.style.display = "none";
+      if (statusField) statusField.style.display = mode === "register" ? "block" : "none";
+      if (countryField) countryField.style.display = mode === "register" ? "block" : "none";
+      if (stateField) stateField.style.display = mode === "register" ? "block" : "none";
+      if (cityField) cityField.style.display = mode === "register" ? "block" : "none";
+      if (authPrimaryBtn) authPrimaryBtn.textContent = mode === "register" ? "Registrarme" : "Entrar";
+      if (authSecondaryBtn) authSecondaryBtn.textContent = mode === "register" ? "Volver" : "Crear cuenta";
       authError.textContent = "";
     }
 
@@ -1681,6 +1701,9 @@
       if (!self) return;
       profileNick.value = self.nick || "";
       profileStatus.value = self.status || "";
+      if (profileCountry) profileCountry.value = self.country || "";
+      if (profileState) profileState.value = self.state || "";
+      if (profileCity) profileCity.value = self.city || "";
       profileBio.value = self.bio || "";
       profileColor.value = self.color || "#63b3ff";
       profileAvatar.value = "";
@@ -1699,6 +1722,9 @@
       const patch = {
         nick: profileNick.value.trim(),
         status: profileStatus.value.trim(),
+        country: profileCountry ? profileCountry.value.trim() : "",
+        state: profileState ? profileState.value.trim() : "",
+        city: profileCity ? profileCity.value.trim() : "",
         bio: profileBio.value.trim(),
         color: profileColor.value
       };
@@ -1723,6 +1749,10 @@
       viewNick.textContent = user.nick;
       viewNick.style.color = user.color || "";
       viewStatus.textContent = user.status || "-";
+      if (viewRegion) {
+        const region = [user.country, user.state, user.city].filter(Boolean).join(" · ") || "-";
+        viewRegion.textContent = region;
+      }
       viewBio.textContent = user.bio || "-";
       viewActive.textContent = user.lastActive || "-";
       viewAvatar.src = user.avatar || "";
@@ -1831,45 +1861,47 @@
     tabLogin.addEventListener("click", () => switchMode("login"));
     tabRegister.addEventListener("click", () => switchMode("register"));
 
-    googleBtn.addEventListener("click", async () => {
-      try {
-        rememberEnabled = rememberMe.checked;
-        localStorage.setItem("rememberMe", rememberEnabled ? "1" : "0");
-        try {
-          await auth.signInWithPopup(provider);
-        } catch (e) {
-          // Fallback para navegadores que bloquean popups
-          await auth.signInWithRedirect(provider);
-          return;
-        }
-      } catch (e) {
-        authError.textContent = `No se pudo iniciar sesión con Google. ${e && e.code ? e.code : ""}`.trim();
+    function sendAuth(action) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        authError.textContent = "Sin conexión con el servidor.";
+        return;
       }
+      const nick = (authNick.value || "").trim();
+      const password = (authPass.value || "").trim();
+      if (!nick || !password) {
+        authError.textContent = "Nick y contraseña requeridos.";
+        return;
+      }
+      rememberEnabled = rememberMe && rememberMe.checked;
+      localStorage.setItem("rememberMe", rememberEnabled ? "1" : "0");
+      if (action === "register") {
+        const status = (authStatus.value || "").trim();
+        const country = (authCountry.value || "").trim();
+        const state = (authState.value || "").trim();
+        const city = (authCity.value || "").trim();
+        ws.send(JSON.stringify({ type: "register", nick, password, status, country, state, city }));
+      } else {
+        ws.send(JSON.stringify({ type: "login", nick, password }));
+      }
+    }
+
+    if (authPrimaryBtn) authPrimaryBtn.addEventListener("click", () => {
+      sendAuth(mode === "register" ? "register" : "login");
     });
 
-    auth.onAuthStateChanged(async (user) => {
-      if (!user || !ws || ws.readyState !== WebSocket.OPEN) return;
-      const token = await user.getIdToken();
-      ws.send(JSON.stringify({
-        type: "firebase_auth",
-        token,
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        photoURL: user.photoURL
-      }));
+    if (authSecondaryBtn) authSecondaryBtn.addEventListener("click", () => {
+      switchMode(mode === "register" ? "login" : "register");
     });
+
+    if (authPass) {
+      authPass.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") sendAuth(mode === "register" ? "register" : "login");
+      });
+    }
 
     if (rememberMe) {
       rememberMe.checked = rememberEnabled;
     }
-
-    // Ocultar campos de login antiguo (solo Google)
-    if (authNick && authNick.closest(".field")) authNick.closest(".field").style.display = "none";
-    if (authPass && authPass.closest(".field")) authPass.closest(".field").style.display = "none";
-    if (statusField) statusField.style.display = "none";
-    if (tabLogin) tabLogin.style.display = "none";
-    if (tabRegister) tabRegister.style.display = "none";
 
     btnProfile.addEventListener("click", openProfileEditor);
 

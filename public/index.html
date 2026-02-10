@@ -6,7 +6,6 @@
   <title>mIRC Moderno · cambachat</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
     :root {
       --bg: #0a0d14;
@@ -812,13 +811,25 @@
         <label for="authStatus">Estado</label>
         <input id="authStatus" type="text" placeholder="listo, away, ocupado..." />
       </div>
+      <div class="field" id="countryField" style="display:none;">
+        <label for="authCountry">País</label>
+        <input id="authCountry" type="text" placeholder="Perú, Chile, México..." />
+      </div>
+      <div class="field" id="stateField" style="display:none;">
+        <label for="authState">Estado / Depto.</label>
+        <input id="authState" type="text" placeholder="Lima, Antioquia, CDMX..." />
+      </div>
+      <div class="field" id="cityField" style="display:none;">
+        <label for="authCity">Ciudad</label>
+        <input id="authCity" type="text" placeholder="Lima, Medellín, Guadalajara..." />
+      </div>
       <div class="field">
         <label><input id="rememberMe" type="checkbox" checked /> Recordar sesión</label>
       </div>
       <div class="auth-error" id="authError"></div>
       <div class="auth-actions">
-        <span class="muted">Acceso rápido con Google</span>
-        <button id="googleBtn" type="button">Entrar con Google</button>
+        <button id="authPrimaryBtn" type="button">Entrar</button>
+        <button id="authSecondaryBtn" type="button">Crear cuenta</button>
       </div>
     </div>
   </div>
@@ -833,6 +844,18 @@
       <div class="field">
         <label for="profileStatus">Estado</label>
         <input id="profileStatus" type="text" placeholder="listo, away, ocupado..." />
+      </div>
+      <div class="field">
+        <label for="profileCountry">País</label>
+        <input id="profileCountry" type="text" placeholder="Perú, Chile, México..." />
+      </div>
+      <div class="field">
+        <label for="profileState">Estado / Depto.</label>
+        <input id="profileState" type="text" placeholder="Lima, Antioquia, CDMX..." />
+      </div>
+      <div class="field">
+        <label for="profileCity">Ciudad</label>
+        <input id="profileCity" type="text" placeholder="Lima, Medellín, Guadalajara..." />
       </div>
       <div class="field">
         <label for="profileBio">Bio corta</label>
@@ -873,6 +896,7 @@
         <div>
           <div id="viewNick" class="nick">-</div>
           <div id="viewStatus">-</div>
+          <div id="viewRegion" class="bio">-</div>
           <div id="viewBio" class="bio">-</div>
         </div>
       </div>
@@ -936,6 +960,7 @@
               <div>
                 <div id="selfNick" class="nick">-</div>
                 <div id="selfStatus">-</div>
+                <div id="selfRegion" class="bio">-</div>
                 <div id="selfBio" class="bio">-</div>
               </div>
             </div>
@@ -1034,57 +1059,1033 @@
     </div>
 
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyDEHHOYxPgMW5SeuyNcHfF2fRaxmbHAanw",
-      authDomain: "chat-69e73.firebaseapp.com",
-      databaseURL: "https://chat-69e73-default-rtdb.firebaseio.com",
-      projectId: "chat-69e73",
-      storageBucket: "chat-69e73.firebasestorage.app",
-      messagingSenderId: "231503681962",
-      appId: "1:231503681962:web:d6b690c8432e6c00fb33d3",
-      measurementId: "G-3FHYKEY6NM"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-
     const messagesEl = document.getElementById("messages");
+    const userListEl = document.getElementById("userList");
+    const roomListEl = document.getElementById("roomList");
+    const roomInput = document.getElementById("roomInput");
+    const roomJoin = document.getElementById("roomJoin");
+    const roomLabel = document.getElementById("roomLabel");
+    const roomLabel2 = document.getElementById("roomLabel2");
+    const roomLabel3 = document.getElementById("roomLabel3");
+    const dmList = document.getElementById("dmList");
+
     const inputEl = document.getElementById("input");
     const sendBtn = document.getElementById("sendBtn");
     const connStatus = document.getElementById("connStatus");
+    const userCount = document.getElementById("userCount");
+    const selfNick = document.getElementById("selfNick");
+    const selfStatus = document.getElementById("selfStatus");
+    const selfRegion = document.getElementById("selfRegion");
+    const selfActive = document.getElementById("selfActive");
+    const selfBio = document.getElementById("selfBio");
+    const selfAvatar = document.getElementById("selfAvatar");
+    const msgCountEl = document.getElementById("msgCount");
+    const rxCountEl = document.getElementById("rxCount");
+    const pingEl = document.getElementById("ping");
+    const statusLeft = document.getElementById("statusLeft");
 
-    const savedNick = localStorage.getItem("nick") || "";
-    let miNick = savedNick || ("Camba_" + Math.floor(Math.random() * 999));
-    if (!savedNick) localStorage.setItem("nick", miNick);
+    const authOverlay = document.getElementById("authOverlay");
+    const tabLogin = document.getElementById("tabLogin");
+    const tabRegister = document.getElementById("tabRegister");
+    const authNick = document.getElementById("authNick");
+    const authPass = document.getElementById("authPass");
+    const authStatus = document.getElementById("authStatus");
+    const authCountry = document.getElementById("authCountry");
+    const authState = document.getElementById("authState");
+    const authCity = document.getElementById("authCity");
+    const statusField = document.getElementById("statusField");
+    const countryField = document.getElementById("countryField");
+    const stateField = document.getElementById("stateField");
+    const cityField = document.getElementById("cityField");
+    const authPrimaryBtn = document.getElementById("authPrimaryBtn");
+    const authSecondaryBtn = document.getElementById("authSecondaryBtn");
+    const authError = document.getElementById("authError");
+    const rememberMe = document.getElementById("rememberMe");
 
-    function enviarMensaje() {
-      const texto = inputEl.value.trim();
-      if (texto !== "") {
-        db.ref("mensajes").push({
-          usuario: miNick,
-          mensaje: texto,
-          fecha: Date.now()
+    const profileOverlay = document.getElementById("profileOverlay");
+    const profileNick = document.getElementById("profileNick");
+    const profileStatus = document.getElementById("profileStatus");
+    const profileCountry = document.getElementById("profileCountry");
+    const profileState = document.getElementById("profileState");
+    const profileCity = document.getElementById("profileCity");
+    const profileBio = document.getElementById("profileBio");
+    const profileColor = document.getElementById("profileColor");
+    const profileAvatar = document.getElementById("profileAvatar");
+    const profileSave = document.getElementById("profileSave");
+    const profileCancel = document.getElementById("profileCancel");
+    const profileError = document.getElementById("profileError");
+    const profileCurrentPass = document.getElementById("profileCurrentPass");
+    const profileNewPass = document.getElementById("profileNewPass");
+
+    const userOverlay = document.getElementById("userOverlay");
+    const viewAvatar = document.getElementById("viewAvatar");
+    const viewNick = document.getElementById("viewNick");
+    const viewStatus = document.getElementById("viewStatus");
+    const viewRegion = document.getElementById("viewRegion");
+    const viewBio = document.getElementById("viewBio");
+    const viewActive = document.getElementById("viewActive");
+    const viewClose = document.getElementById("viewClose");
+    const viewDm = document.getElementById("viewDm");
+    const viewBlock = document.getElementById("viewBlock");
+
+    const dmOverlay = document.getElementById("dmOverlay");
+    const dmModal = dmOverlay ? dmOverlay.querySelector(".dm-modal") : null;
+    const dmTitle = document.getElementById("dmTitle");
+    const dmMessages = document.getElementById("dmMessages");
+    const dmInput = document.getElementById("dmInput");
+    const dmSend = document.getElementById("dmSend");
+    const dmClose = document.getElementById("dmClose");
+    const dmError = document.getElementById("dmError");
+
+    const btnProfile = document.getElementById("btnProfile");
+    const btnMe = document.getElementById("btnMe");
+    const btnNudge = document.getElementById("btnNudge");
+    const btnLogout = document.getElementById("btnLogout");
+
+    const historyLoad = document.getElementById("historyLoad");
+    const historyHide = document.getElementById("historyHide");
+    const historySearch = document.getElementById("historySearch");
+    const soundToggle = document.getElementById("soundToggle");
+    const notifToggle = document.getElementById("notifToggle");
+    const menuBtn = document.getElementById("menuBtn");
+    const drawer = document.getElementById("drawer");
+    const drawerClose = document.getElementById("drawerClose");
+    const drawerNudge = document.getElementById("drawerNudge");
+    const drawerButtons = drawer ? drawer.querySelectorAll("button[data-view]") : [];
+
+    let ws;
+    let self = null;
+    let currentRoom = "#general";
+    let msgCount = 0;
+    let rxCount = 0;
+    let lastPing = null;
+    let pingTimer = null;
+    let mode = "login";
+    let historyEnabled = localStorage.getItem("historyEnabled") !== "0";
+    let pendingAvatar = "";
+    let currentUsers = [];
+    const dmThreads = new Map();
+    let soundEnabled = localStorage.getItem("soundEnabled") !== "0";
+    let notifEnabled = localStorage.getItem("notifEnabled") === "1";
+    let audioCtx = null;
+    let masterGain = null;
+    let windowFocused = true;
+    let authToken = localStorage.getItem("authToken") || "";
+    let rememberEnabled = localStorage.getItem("rememberMe") !== "0";
+
+    const quickEmojis = ["👍", "😂", "🔥", "❤️"];
+
+    const WS_URL = window.WS_URL || window.__WS_URL || localStorage.getItem("ws_url") || "";
+
+    function connect() {
+      const proto = location.protocol === "https:" ? "wss" : "ws";
+      const url = WS_URL ? WS_URL : `${proto}://${location.host}`;
+      ws = new WebSocket(url);
+
+      ws.addEventListener("open", () => {
+        connStatus.textContent = "Conectado";
+        schedulePing();
+        if (authToken) {
+          ws.send(JSON.stringify({ type: "auth_token", token: authToken }));
+        }
+      });
+
+      ws.addEventListener("error", () => {
+        connStatus.textContent = "Error de conexión";
+      });
+
+      ws.addEventListener("close", () => {
+        connStatus.textContent = "Desconectado";
+        if (pingTimer) clearTimeout(pingTimer);
+        setTimeout(connect, 1000);
+      });
+
+      ws.addEventListener("message", (event) => {
+        const payload = JSON.parse(event.data);
+        if (payload.type === "init") {
+          self = payload.self;
+          renderRooms(payload.rooms || []);
+          updateProfile();
+          updateStatusBar();
+          return;
+        }
+
+        if (payload.type === "rooms") {
+          renderRooms(payload.rooms || []);
+          return;
+        }
+
+        if (payload.type === "room_sync") {
+          currentRoom = payload.room;
+          updateRoomLabels();
+          if (historyEnabled) {
+            messagesEl.innerHTML = "";
+            msgCount = 0;
+            msgCountEl.textContent = "0";
+            (payload.messages || []).forEach(renderMessage);
+          }
+          renderUsers(payload.users || []);
+          return;
+        }
+
+        if (payload.type === "presence") {
+          if (payload.room === currentRoom) renderUsers(payload.users || []);
+          return;
+        }
+
+        if (payload.type === "message") {
+          renderMessage(payload.message);
+          maybeNotify(payload.message);
+          return;
+        }
+
+        if (payload.type === "reaction") {
+          applyReaction(payload.messageId, payload.emoji, payload.users);
+          rxCount += 1;
+          rxCountEl.textContent = rxCount;
+          return;
+        }
+
+        if (payload.type === "nudge") {
+          renderMessage({
+            type: "system",
+            id: `nudge_${Date.now()}`,
+            text: `${payload.from} te envió un zumbido.`,
+            time: timeNow()
+          });
+          triggerNudge();
+          maybeNotify({ type: "system", text: `${payload.from} te envió un zumbido.` }, true);
+          return;
+        }
+
+        if (payload.type === "system") {
+          renderMessage({
+            type: "system",
+            id: `local_${Date.now()}`,
+            text: payload.text,
+            time: timeNow()
+          });
+          return;
+        }
+
+        if (payload.type === "clear") {
+          messagesEl.innerHTML = "";
+          msgCount = 0;
+          msgCountEl.textContent = "0";
+          return;
+        }
+
+        if (payload.type === "pong") {
+          lastPing = Date.now() - lastPing;
+          pingEl.textContent = `${lastPing}ms`;
+          updateStatusBar();
+          return;
+        }
+
+        if (payload.type === "auth_ok") {
+          self = payload.self;
+          authOverlay.style.display = "none";
+          authError.textContent = "";
+          inputEl.disabled = false;
+          sendBtn.disabled = false;
+          if (payload.token && rememberEnabled) {
+            authToken = payload.token;
+            localStorage.setItem("authToken", authToken);
+          }
+          if (!rememberEnabled) {
+            localStorage.removeItem("authToken");
+            authToken = "";
+          }
+          updateProfile();
+          updateStatusBar();
+          if (historyEnabled) requestHistory();
+          return;
+        }
+
+        if (payload.type === "logout_ok") {
+          localStorage.removeItem("authToken");
+          authToken = "";
+          authOverlay.style.display = "grid";
+          inputEl.disabled = true;
+          sendBtn.disabled = true;
+          return;
+        }
+
+        if (payload.type === "block_ok") {
+          if (self) self.blocked = payload.blocked || [];
+          updateBlockButton();
+          return;
+        }
+
+        if (payload.type === "profile_ok") {
+          self = payload.self;
+          profileOverlay.style.display = "none";
+          profileError.textContent = "";
+          profileCurrentPass.value = "";
+          profileNewPass.value = "";
+          updateProfile();
+          return;
+        }
+
+        if (payload.type === "auth_error") {
+          authError.textContent = payload.text || "Error de autenticación";
+          return;
+        }
+
+        if (payload.type === "dm_history") {
+          if (payload.nick !== activeDmNick) return;
+          dmMessages.innerHTML = "";
+          (payload.messages || []).forEach(renderDmMessage);
+          return;
+        }
+
+        if (payload.type === "dm_message") {
+          const msg = payload.message;
+          if (!msg) return;
+          trackDmThread(msg);
+          if (activeDmNick && (msg.from === activeDmNick || msg.to === activeDmNick)) {
+            renderDmMessage(msg);
+            setDmUnread(activeDmNick, 0);
+          } else {
+            const other = msg.from === (self && self.nick) ? msg.to : msg.from;
+            bumpDmUnread(other);
+            openDm(other, true);
+          }
+          maybeNotify({ type: "system", text: `DM de ${msg.from}: ${msg.text}` }, true);
+          return;
+        }
+
+        if (payload.type === "dm_error") {
+          if (dmError) dmError.textContent = payload.text || "Error en DM.";
+          return;
+        }
+      });
+    }
+
+    function updateRoomLabels() {
+      roomLabel.textContent = currentRoom;
+      roomLabel2.textContent = currentRoom;
+      roomLabel3.textContent = currentRoom;
+      Array.from(roomListEl.children).forEach((el) => {
+        el.classList.toggle("active", el.dataset.room === currentRoom);
+      });
+    }
+
+    function renderRooms(rooms) {
+      roomListEl.innerHTML = "";
+      rooms.forEach((room) => {
+        const item = document.createElement("div");
+        item.className = "room-item";
+        item.dataset.room = room.name;
+        item.innerHTML = `<span>${room.name}</span><span>${room.count}</span>`;
+        item.addEventListener("click", () => joinRoom(room.name));
+        roomListEl.appendChild(item);
+      });
+      updateRoomLabels();
+    }
+
+    function renderUsers(users) {
+      currentUsers = users;
+      userListEl.innerHTML = "";
+      userCount.textContent = `Usuarios: ${users.length}`;
+      users.forEach((u) => {
+        const div = document.createElement("div");
+        div.className = `user ${u.status.toLowerCase().includes("away") ? "away" : ""}`;
+
+        const label = document.createElement("div");
+        label.className = "label";
+        const nickStyle = u.color ? `style=\"color:${u.color}\"` : "";
+        const avatar = u.avatar ? `<img class=\"avatar-mini\" src=\"${u.avatar}\" alt=\"\" />` : "";
+        label.innerHTML = `${avatar}<span class=\"dot\"></span> <span ${nickStyle}>${u.nick}</span>`;
+        div.appendChild(label);
+
+        label.addEventListener("click", () => openUserProfile(u.nick));
+
+        if (self && self.role === "admin" && u.nick !== self.nick) {
+          const actions = document.createElement("div");
+          actions.className = "mod-actions";
+          actions.innerHTML = `
+            <button data-action=\"mute\">M</button>
+            <button data-action=\"kick\">K</button>
+            <button data-action=\"ban\">B</button>
+          `;
+          actions.querySelectorAll("button").forEach((btn) => {
+            btn.addEventListener("click", () => sendMod(btn.dataset.action, u.nick));
+          });
+          div.appendChild(actions);
+        }
+
+        userListEl.appendChild(div);
+
+        if (self && u.id === self.id) {
+          self = { ...self, ...u };
+          updateProfile();
+          updateStatusBar();
+        }
+      });
+    }
+
+    function updateProfile() {
+      const nickColor = self && self.color ? self.color : "";
+      const region = self && (self.country || self.state || self.city)
+        ? [self.country, self.state, self.city].filter(Boolean).join(" · ")
+        : "-";
+      selfNick.textContent = self ? self.nick : "-";
+      selfNick.style.color = nickColor || "";
+      selfStatus.textContent = self ? self.status : "-";
+      if (selfRegion) selfRegion.textContent = region;
+      selfBio.textContent = self && self.bio ? self.bio : "-";
+      selfActive.textContent = self ? self.lastActive : "-";
+      selfAvatar.src = self && self.avatar ? self.avatar : "";
+    }
+
+    function renderMessage(msg) {
+      const wrap = document.createElement("div");
+      wrap.className = "msg";
+      wrap.dataset.id = msg.id;
+
+      const line = document.createElement("div");
+      line.className = "msg-line";
+
+      const nickStyle = msg.color ? `style=\"color:${msg.color}\"` : "";
+      const avatar = msg.avatar ? `<img src=\"${msg.avatar}\" alt=\"avatar\" />` : "";
+
+      if (msg.type === "system") {
+        line.innerHTML = `<span class=\"system\">*** ${escapeHtml(msg.text)}</span>`;
+        if (soundEnabled && msg.text) {
+          if (msg.text.includes("se conectó")) playSound("join");
+          if (msg.text.includes("salió")) playSound("leave");
+        }
+      } else if (msg.type === "action") {
+        const textHtml = highlightMentions(msg.text || "");
+        line.innerHTML = `<span class=\"time\">[${msg.time}]</span> ${avatar} <span class=\"action\">* <span ${nickStyle}>${escapeHtml(msg.nick)}</span> ${textHtml}</span>`;
+        if (soundEnabled && self && msg.nick !== self.nick) playSound("message");
+      } else {
+        const nickClass = self && msg.nick === self.nick ? "me" : "nick";
+        const textHtml = highlightMentions(msg.text || "");
+        line.innerHTML = `<span class=\"time\">[${msg.time}]</span> ${avatar} <span class=\"${nickClass}\" ${nickStyle}>&lt;${escapeHtml(msg.nick)}&gt;</span> <span>${textHtml}</span>`;
+        if (soundEnabled && self && msg.nick !== self.nick) {
+          const myNick = self.nick || "";
+          const text = (msg.text || "").toLowerCase();
+          const mentioned = myNick && (text.includes(myNick.toLowerCase()) || text.includes(`@${myNick.toLowerCase()}`));
+          playSound(mentioned ? "mention" : "message");
+        }
+      }
+
+      wrap.appendChild(line);
+
+      if (msg.type !== "system") {
+        const reactions = document.createElement("div");
+        reactions.className = "reactions";
+        wrap.appendChild(reactions);
+
+        if (msg.reactions) {
+          Object.entries(msg.reactions).forEach(([emoji, users]) => {
+            const badge = document.createElement("button");
+            badge.className = "reaction";
+            badge.type = "button";
+            badge.dataset.emoji = emoji;
+            badge.textContent = `${emoji} ${users.length}`;
+            badge.addEventListener("click", () => sendReaction(msg.id, emoji));
+            reactions.appendChild(badge);
+          });
+        }
+
+        const quick = document.createElement("div");
+        quick.className = "quick";
+        quickEmojis.forEach((emoji) => {
+          const btn = document.createElement("button");
+          btn.className = "reaction";
+          btn.type = "button";
+          btn.textContent = emoji;
+          btn.addEventListener("click", () => sendReaction(msg.id, emoji));
+          quick.appendChild(btn);
         });
-        inputEl.value = "";
+        wrap.appendChild(quick);
+      }
+
+      messagesEl.appendChild(wrap);
+      applySearchFilter();
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      msgCount += 1;
+      msgCountEl.textContent = msgCount;
+    }
+
+    function applyReaction(messageId, emoji, users) {
+      const msg = messagesEl.querySelector(`[data-id="${messageId}"]`);
+      if (!msg) return;
+      const reactions = msg.querySelector(".reactions");
+      if (!reactions) return;
+
+      let badge = reactions.querySelector(`[data-emoji="${emoji}"]`);
+      if (!badge) {
+        badge = document.createElement("button");
+        badge.className = "reaction";
+        badge.type = "button";
+        badge.dataset.emoji = emoji;
+        badge.addEventListener("click", () => sendReaction(messageId, emoji));
+        reactions.appendChild(badge);
+      }
+      badge.textContent = `${emoji} ${users.length}`;
+    }
+
+    function sendMessage() {
+      const text = inputEl.value.trim();
+      if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+      if (text.startsWith("/")) {
+        handleCommand(text);
+      } else {
+        ws.send(JSON.stringify({ type: "chat", text }));
+      }
+      inputEl.value = "";
+    }
+
+    function handleCommand(text) {
+      const [cmd, ...rest] = text.slice(1).split(" ");
+      const args = rest.join(" ").trim();
+      ws.send(JSON.stringify({ type: "command", command: cmd, args }));
+    }
+
+    function sendReaction(messageId, emoji) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      ws.send(JSON.stringify({ type: "reaction", messageId, emoji }));
+    }
+
+    function sendMod(action, nick) {
+      ws.send(JSON.stringify({ type: "command", command: action, args: nick }));
+    }
+
+    function joinRoom(room) {
+      ws.send(JSON.stringify({ type: "command", command: "join", args: room }));
+      if (!historyEnabled) {
+        messagesEl.innerHTML = "";
+        msgCount = 0;
+        msgCountEl.textContent = "0";
       }
     }
 
-    db.ref("mensajes").limitToLast(50).on("child_added", (snapshot) => {
-      const data = snapshot.val() || {};
+    function requestHistory() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      ws.send(JSON.stringify({ type: "history" }));
+    }
+
+    function triggerNudge() {
+      const windowEl = document.querySelector(".window");
+      windowEl.classList.add("shake");
+      setTimeout(() => windowEl.classList.remove("shake"), 500);
+      if (navigator.vibrate) navigator.vibrate([80, 50, 80]);
+      if (soundEnabled) playSound("nudge");
+    }
+
+    function ensureAudio() {
+      if (audioCtx) return;
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      audioCtx = new Ctx();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.2;
+      masterGain.connect(audioCtx.destination);
+    }
+
+    function playTone(freq, duration, type = "sine") {
+      ensureAudio();
+      if (!audioCtx || !masterGain) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      gain.gain.value = 0.0001;
+      osc.connect(gain);
+      gain.connect(masterGain);
+      const now = audioCtx.currentTime;
+      gain.gain.exponentialRampToValueAtTime(0.2, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+      osc.start(now);
+      osc.stop(now + duration + 0.02);
+    }
+
+    function playSound(kind) {
+      if (!soundEnabled) return;
+      if (!audioCtx) ensureAudio();
+      if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+      if (kind === "message") playTone(520, 0.12, "triangle");
+      if (kind === "mention") { playTone(740, 0.12, "square"); setTimeout(() => playTone(980, 0.12, "square"), 130); }
+      if (kind === "nudge") { playTone(120, 0.18, "sawtooth"); setTimeout(() => playTone(160, 0.18, "sawtooth"), 180); }
+      if (kind === "join") playTone(420, 0.12, "sine");
+      if (kind === "leave") playTone(260, 0.14, "sine");
+    }
+
+    function ping() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      lastPing = Date.now();
+      ws.send(JSON.stringify({ type: "ping" }));
+      schedulePing();
+    }
+
+    function schedulePing() {
+      if (pingTimer) clearTimeout(pingTimer);
+      pingTimer = setTimeout(ping, 8000);
+    }
+
+    function updateStatusBar() {
+      const nick = self ? self.nick : "-";
+      statusLeft.textContent = `Nick: ${nick} | Ping: ${lastPing || "--"}`;
+    }
+
+    function timeNow() {
+      const d = new Date();
+      return d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function highlightMentions(text) {
+      const safe = escapeHtml(text);
+      if (!self || !self.nick) return safe;
+      const nick = self.nick.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(`(@?${nick})`, "gi");
+      return safe.replace(regex, "<span class=\"mention\">$1</span>");
+    }
+
+    function maybeNotify(msg, force = false) {
+      if (!notifEnabled) return;
+      if (!("Notification" in window)) return;
+      if (Notification.permission !== "granted") return;
+      if (windowFocused && !force) return;
+      const title = msg.type === "system" ? "cambachat" : `${msg.nick || "Mensaje"}`;
+      const body = msg.type === "system" ? msg.text : msg.text;
+      new Notification(title, { body, silent: false });
+    }
+
+    function applySearchFilter() {
+      const query = (historySearch.value || "").trim().toLowerCase();
+      const items = messagesEl.querySelectorAll(".msg");
+      if (!query) {
+        items.forEach((el) => (el.style.display = ""));
+        return;
+      }
+      items.forEach((el) => {
+        const text = el.textContent.toLowerCase();
+        el.style.display = text.includes(query) ? "" : "none";
+      });
+    }
+
+    function setMobileView(view) {
+      document.body.dataset.view = view;
+      drawerButtons.forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.view === view);
+      });
+    }
+
+    function switchMode(next) {
+      mode = next;
+      tabLogin.classList.toggle("active", mode === "login");
+      tabRegister.classList.toggle("active", mode === "register");
+      if (statusField) statusField.style.display = mode === "register" ? "block" : "none";
+      if (countryField) countryField.style.display = mode === "register" ? "block" : "none";
+      if (stateField) stateField.style.display = mode === "register" ? "block" : "none";
+      if (cityField) cityField.style.display = mode === "register" ? "block" : "none";
+      if (authPrimaryBtn) authPrimaryBtn.textContent = mode === "register" ? "Registrarme" : "Entrar";
+      if (authSecondaryBtn) authSecondaryBtn.textContent = mode === "register" ? "Volver" : "Crear cuenta";
+      authError.textContent = "";
+    }
+
+    function openProfileEditor() {
+      if (!self) return;
+      profileNick.value = self.nick || "";
+      profileStatus.value = self.status || "";
+      if (profileCountry) profileCountry.value = self.country || "";
+      if (profileState) profileState.value = self.state || "";
+      if (profileCity) profileCity.value = self.city || "";
+      profileBio.value = self.bio || "";
+      profileColor.value = self.color || "#63b3ff";
+      profileAvatar.value = "";
+      pendingAvatar = self.avatar || "";
+      profileCurrentPass.value = "";
+      profileNewPass.value = "";
+      profileError.textContent = "";
+      profileOverlay.style.display = "grid";
+    }
+
+    function saveProfile() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        profileError.textContent = "No hay conexión con el servidor.";
+        return;
+      }
+      const patch = {
+        nick: profileNick.value.trim(),
+        status: profileStatus.value.trim(),
+        country: profileCountry ? profileCountry.value.trim() : "",
+        state: profileState ? profileState.value.trim() : "",
+        city: profileCity ? profileCity.value.trim() : "",
+        bio: profileBio.value.trim(),
+        color: profileColor.value
+      };
+      if (pendingAvatar) patch.avatar = pendingAvatar;
+      ws.send(JSON.stringify({ type: "profile_update", patch }));
+
+      const current = profileCurrentPass.value.trim();
+      const next = profileNewPass.value.trim();
+      if (current || next) {
+        ws.send(JSON.stringify({ type: "password_update", current, next }));
+      }
+    }
+
+    function closeProfile() {
+      profileOverlay.style.display = "none";
+      profileError.textContent = "";
+    }
+
+    function openUserProfile(nick) {
+      const user = currentUsers.find((u) => u.nick === nick);
+      if (!user) return;
+      viewNick.textContent = user.nick;
+      viewNick.style.color = user.color || "";
+      viewStatus.textContent = user.status || "-";
+      if (viewRegion) {
+        const region = [user.country, user.state, user.city].filter(Boolean).join(" · ") || "-";
+        viewRegion.textContent = region;
+      }
+      viewBio.textContent = user.bio || "-";
+      viewActive.textContent = user.lastActive || "-";
+      viewAvatar.src = user.avatar || "";
+      userOverlay.style.display = "grid";
+      updateBlockButton();
+    }
+
+    function closeUserProfile() {
+      userOverlay.style.display = "none";
+    }
+
+    let activeDmNick = "";
+
+    function openDm(nick, autoOpen = false) {
+      activeDmNick = nick;
+      dmTitle.textContent = `DM con ${nick}`;
+      dmMessages.innerHTML = "";
+      dmError.textContent = "";
+      dmOverlay.style.display = "grid";
+      if (dmModal) {
+        dmModal.classList.toggle("hacker", autoOpen);
+        if (autoOpen) {
+          setTimeout(() => dmModal.classList.remove("hacker"), 1200);
+          playSound("nudge");
+        }
+      }
+      ws.send(JSON.stringify({ type: "dm_history", nick }));
+      setDmUnread(nick, 0);
+    }
+
+    function closeDm() {
+      dmOverlay.style.display = "none";
+      activeDmNick = "";
+      if (dmModal) dmModal.classList.remove("hacker");
+    }
+
+    function renderDmMessage(msg) {
       const div = document.createElement("div");
-      div.className = "msg";
-      div.innerHTML = `<span class="nick">${data.usuario || "anon"}:</span> ${data.mensaje || ""}`;
-      messagesEl.appendChild(div);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
+      const mine = self && msg.from === self.nick;
+      div.className = "msg-line";
+      div.innerHTML = `<span class="time">[${msg.time}]</span> <span class="${mine ? "me" : "nick"}">&lt;${escapeHtml(msg.from)}&gt;</span> <span>${escapeHtml(msg.text)}</span>`;
+      dmMessages.appendChild(div);
+      dmMessages.scrollTop = dmMessages.scrollHeight;
+    }
+
+    function sendDm() {
+      const text = dmInput.value.trim();
+      if (!text || !activeDmNick) return;
+      dmError.textContent = "";
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        dmError.textContent = "No hay conexión con el servidor.";
+        return;
+      }
+      ws.send(JSON.stringify({ type: "command", command: "dm", args: `${activeDmNick} ${text}` }));
+      dmInput.value = "";
+    }
+
+
+    function trackDmThread(msg) {
+      if (!self) return;
+      const other = msg.from === self.nick ? msg.to : msg.from;
+      if (!other) return;
+      const thread = dmThreads.get(other) || { nick: other, unread: 0 };
+      dmThreads.set(other, thread);
+      renderDmList();
+    }
+
+    function bumpDmUnread(nick) {
+      const thread = dmThreads.get(nick) || { nick, unread: 0 };
+      thread.unread += 1;
+      dmThreads.set(nick, thread);
+      renderDmList();
+    }
+
+    function setDmUnread(nick, count) {
+      const thread = dmThreads.get(nick) || { nick, unread: 0 };
+      thread.unread = count;
+      dmThreads.set(nick, thread);
+      renderDmList();
+    }
+
+    function renderDmList() {
+      if (!dmList) return;
+      dmList.innerHTML = "";
+      const items = Array.from(dmThreads.values()).sort((a, b) => b.unread - a.unread);
+      if (!items.length) {
+        dmList.innerHTML = "<div class=\"muted\">Sin privados</div>";
+        return;
+      }
+      items.forEach((t) => {
+        const row = document.createElement("div");
+        row.className = "dm-item";
+        row.innerHTML = `<span>${t.nick}</span>${t.unread ? `<span class=\"dm-badge\">${t.unread}</span>` : ""}`;
+        row.addEventListener("click", () => openDm(t.nick));
+        dmList.appendChild(row);
+      });
+    }
+
+    function updateBlockButton() {
+      if (!self || !self.blocked || !viewNick.textContent) return;
+      const target = viewNick.textContent;
+      const blocked = self.blocked.includes(target);
+      viewBlock.textContent = blocked ? "Desbloquear" : "Bloquear";
+    }
+
+    tabLogin.addEventListener("click", () => switchMode("login"));
+    tabRegister.addEventListener("click", () => switchMode("register"));
+
+    function sendAuth(action) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        authError.textContent = "Sin conexión con el servidor.";
+        return;
+      }
+      const nick = (authNick.value || "").trim();
+      const password = (authPass.value || "").trim();
+      if (!nick || !password) {
+        authError.textContent = "Nick y contraseña requeridos.";
+        return;
+      }
+      rememberEnabled = rememberMe && rememberMe.checked;
+      localStorage.setItem("rememberMe", rememberEnabled ? "1" : "0");
+      if (action === "register") {
+        const status = (authStatus.value || "").trim();
+        const country = (authCountry.value || "").trim();
+        const state = (authState.value || "").trim();
+        const city = (authCity.value || "").trim();
+        ws.send(JSON.stringify({ type: "register", nick, password, status, country, state, city }));
+      } else {
+        ws.send(JSON.stringify({ type: "login", nick, password }));
+      }
+    }
+
+    if (authPrimaryBtn) authPrimaryBtn.addEventListener("click", () => {
+      sendAuth(mode === "register" ? "register" : "login");
     });
 
-    sendBtn.onclick = enviarMensaje;
-    inputEl.onkeypress = (e) => { if(e.key === 'Enter') enviarMensaje(); };
-
-    db.ref(".info/connected").on("value", (snap) => {
-      connStatus.innerText = snap.val() ? "ONLINE" : "OFFLINE";
-      connStatus.style.color = snap.val() ? "#63ffc8" : "#ffb454";
+    if (authSecondaryBtn) authSecondaryBtn.addEventListener("click", () => {
+      switchMode(mode === "register" ? "login" : "register");
     });
+
+    if (authPass) {
+      authPass.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") sendAuth(mode === "register" ? "register" : "login");
+      });
+    }
+
+    if (rememberMe) {
+      rememberMe.checked = rememberEnabled;
+    }
+
+    btnProfile.addEventListener("click", openProfileEditor);
+
+    profileSave.addEventListener("click", saveProfile);
+    profileCancel.addEventListener("click", closeProfile);
+    viewClose.addEventListener("click", closeUserProfile);
+    viewDm.addEventListener("click", () => {
+      const nick = viewNick.textContent;
+      if (!nick || nick === (self && self.nick)) return;
+      closeUserProfile();
+      dmThreads.set(nick, dmThreads.get(nick) || { nick, unread: 0 });
+      renderDmList();
+      openDm(nick);
+    });
+    viewBlock.addEventListener("click", () => {
+      const nick = viewNick.textContent;
+      if (!nick || nick === (self && self.nick)) return;
+      const blocked = self && self.blocked && self.blocked.includes(nick);
+      ws.send(JSON.stringify({ type: blocked ? "unblock_user" : "block_user", nick }));
+    });
+    dmClose.addEventListener("click", closeDm);
+    dmSend.addEventListener("click", sendDm);
+    dmInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendDm();
+    });
+
+    profileOverlay.addEventListener("click", (e) => {
+      if (e.target === profileOverlay) closeProfile();
+    });
+
+    userOverlay.addEventListener("click", (e) => {
+      if (e.target === userOverlay) closeUserProfile();
+    });
+
+    dmOverlay.addEventListener("click", (e) => {
+      if (e.target === dmOverlay) closeDm();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && profileOverlay.style.display !== "none") {
+        closeProfile();
+      }
+      if (e.key === "Escape" && userOverlay.style.display !== "none") {
+        closeUserProfile();
+      }
+    });
+
+    profileAvatar.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) {
+        profileError.textContent = "La imagen supera 5MB.";
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        pendingAvatar = reader.result;
+        profileError.textContent = "";
+      };
+      reader.readAsDataURL(file);
+    });
+
+    btnMe.addEventListener("click", () => {
+      const action = prompt("Acción (/me):");
+      if (!action) return;
+      ws.send(JSON.stringify({ type: "command", command: "me", args: action }));
+    });
+
+    btnNudge.addEventListener("click", () => {
+      ws.send(JSON.stringify({ type: "command", command: "nudge", args: "" }));
+    });
+
+    btnLogout.addEventListener("click", () => {
+      localStorage.removeItem("authToken");
+      authToken = "";
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "logout", token: authToken }));
+      }
+      auth.signOut().catch(() => {});
+      authOverlay.style.display = "grid";
+      inputEl.disabled = true;
+      sendBtn.disabled = true;
+    });
+
+    roomJoin.addEventListener("click", () => {
+      const room = roomInput.value.trim();
+      if (!room) return;
+      joinRoom(room);
+      roomInput.value = "";
+    });
+
+    historyLoad.addEventListener("click", () => {
+      historyEnabled = true;
+      localStorage.setItem("historyEnabled", "1");
+      requestHistory();
+    });
+
+    historyHide.addEventListener("click", () => {
+      historyEnabled = false;
+      localStorage.setItem("historyEnabled", "0");
+      messagesEl.innerHTML = "";
+      msgCount = 0;
+      msgCountEl.textContent = "0";
+    });
+
+    function updateSoundToggle() {
+      soundToggle.textContent = `Sonido: ${soundEnabled ? "ON" : "OFF"}`;
+    }
+
+    soundToggle.addEventListener("click", () => {
+      soundEnabled = !soundEnabled;
+      localStorage.setItem("soundEnabled", soundEnabled ? "1" : "0");
+      updateSoundToggle();
+      if (soundEnabled) playSound("message");
+    });
+
+    function updateNotifToggle() {
+      notifToggle.textContent = `Notificaciones: ${notifEnabled ? "ON" : "OFF"}`;
+    }
+
+    notifToggle.addEventListener("click", async () => {
+      if (!("Notification" in window)) {
+        alert("Este navegador no soporta notificaciones.");
+        return;
+      }
+      if (Notification.permission !== "granted") {
+        const perm = await Notification.requestPermission();
+        if (perm !== "granted") return;
+      }
+      notifEnabled = !notifEnabled;
+      localStorage.setItem("notifEnabled", notifEnabled ? "1" : "0");
+      updateNotifToggle();
+    });
+
+    historySearch.addEventListener("input", applySearchFilter);
+
+    window.addEventListener("focus", () => { windowFocused = true; });
+    window.addEventListener("blur", () => { windowFocused = false; });
+
+    drawerButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        setMobileView(btn.dataset.view);
+        drawer.style.display = "none";
+      });
+    });
+
+
+    if (menuBtn) {
+      menuBtn.addEventListener("click", () => {
+        drawer.style.display = "block";
+      });
+    }
+
+    if (drawerClose) {
+      drawerClose.addEventListener("click", () => {
+        drawer.style.display = "none";
+      });
+    }
+
+    if (drawerNudge) {
+      drawerNudge.addEventListener("click", () => {
+        ws.send(JSON.stringify({ type: "command", command: "nudge", args: "" }));
+        drawer.style.display = "none";
+      });
+    }
+
+    if (drawer) {
+      drawer.addEventListener("click", (e) => {
+        if (e.target === drawer) drawer.style.display = "none";
+      });
+    }
+
+    inputEl.addEventListener("keydown", (e) => {
+      if (!audioCtx) ensureAudio();
+      if (e.key === "Enter") sendMessage();
+    });
+
+    sendBtn.addEventListener("click", sendMessage);
+
+    switchMode("login");
+    connect();
+    updateSoundToggle();
+    updateNotifToggle();
+    setMobileView("chat");
   </script>
 </body>
 </html>
