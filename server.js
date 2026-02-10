@@ -347,13 +347,58 @@ function makeGuest() {
 }
 
 const botTriggers = [
-  { match: /precio|costo|vale/i, reply: "Escribe el precio y si haces envíos. Ej: $120 y envío." },
-  { match: /envio|delivery|entrega/i, reply: "Indica ciudad y forma de entrega." },
-  { match: /contacto|whatsapp|telefono/i, reply: "Comparte un medio de contacto si deseas venta rápida." },
-  { match: /reglas|spam/i, reply: "Reglas: respeto, nada de spam, publicaciones claras." }
+  {
+    match: /precio|costo|vale/i,
+    replies: [
+      "Cuéntame el precio y si aceptas ofertas 👀",
+      "¿Cuánto pides? También indica si haces envío.",
+      "Pasa el precio y si es negociable."
+    ]
+  },
+  {
+    match: /envio|delivery|entrega/i,
+    replies: [
+      "¿En qué ciudad estás y cómo haces la entrega?",
+      "Indica si entregas en persona o haces envío.",
+      "¿Entrega en mano o por courier?"
+    ]
+  },
+  {
+    match: /contacto|whatsapp|telefono/i,
+    replies: [
+      "Si quieres venta rápida, deja un contacto (WhatsApp o similar).",
+      "Comparte un medio de contacto confiable si deseas.",
+      "¿Tienes WhatsApp o número de contacto?"
+    ]
+  },
+  {
+    match: /reglas|spam/i,
+    replies: [
+      "Reglas básicas: respeto, claridad en el precio y nada de spam 🙌",
+      "Cuidemos la comunidad: publicaciones claras y sin spam.",
+      "Respetemos: sin spam y con info completa."
+    ]
+  },
+  {
+    match: /vendo|vendo|vendo\s/i,
+    replies: [
+      "Tip: agrega precio, estado y ciudad para vender más rápido.",
+      "¿Estado del producto? ¿Precio y ciudad?",
+      "Pon fotos, precio y ciudad para más interesados."
+    ]
+  },
+  {
+    match: /compro|busco|necesito/i,
+    replies: [
+      "Tip: especifica modelo, rango de precio y ciudad.",
+      "¿Qué modelo buscas? ¿En qué ciudad estás?",
+      "Dinos presupuesto y ciudad para ayudarte mejor."
+    ]
+  }
 ];
 
 const botCooldown = new Map();
+const botWelcomeCooldown = new Map();
 
 function isNickOnline(nick) {
   return Array.from(users.values()).some((u) => u.authenticated && u.nick === nick);
@@ -699,6 +744,14 @@ wss.on("connection", (ws) => {
       ws.send(JSON.stringify({ type: "auth_ok", self: u, token }));
       ws.send(JSON.stringify({ type: "system", text: `Bienvenido ${u.nick}.` }));
       systemMessage(u.room, `${u.nick} se conectó.`);
+      const bot = bots[0];
+      if (bot) {
+        const last = botWelcomeCooldown.get(u.room) || 0;
+        if (Date.now() - last > 60000) {
+          botWelcomeCooldown.set(u.room, Date.now());
+          setTimeout(() => broadcastBotMessage(bot, `Hola ${u.nick}! Si publicas, agrega precio y ciudad 🙂`), 2500);
+        }
+      }
       updatePresence(u.room);
       updateRooms();
       ws.send(JSON.stringify({ type: "room_sync", room: u.room, messages: roomHistory(u.room), users: userList(u.room) }));
@@ -1061,7 +1114,10 @@ wss.on("connection", (ws) => {
           const hit = botTriggers.find((t) => t.match.test(text));
           if (hit) {
             botCooldown.set(u.room, Date.now());
-            setTimeout(() => broadcastBotMessage(bot, hit.reply), 600 + Math.random() * 600);
+            const replies = hit.replies || [hit.reply];
+            const reply = replies[Math.floor(Math.random() * replies.length)];
+            const delay = 3000 + Math.random() * 5000;
+            setTimeout(() => broadcastBotMessage(bot, reply), delay);
           }
         }
       }
