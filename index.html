@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>mIRC Moderno · cambachat</title>
+  <title>cambachat · cambachat</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
   <style>
     :root {
       --bg: #0a0d14;
@@ -34,11 +36,11 @@
         linear-gradient(180deg, #090b12 0%, #0b0f18 60%, #090b12 100%);
       display: grid;
       place-items: center;
-      padding: 20px;
+      padding: 0;
     }
 
     .window {
-      width: min(1480px, 98vw);
+      width: min(1400px, 100vw);
       height: min(900px, 96vh);
       background: var(--panel);
       border: 1px solid rgba(123, 97, 255, 0.45);
@@ -184,10 +186,7 @@
     .msg:hover .quick { opacity: 1; }
 
     .side {
-      border-right: 1px solid var(--line);
-      display: grid;
-      grid-template-rows: 30px 1fr;
-      min-height: 0;
+      display: none;
     }
 
     .panel {
@@ -823,7 +822,7 @@
     .stream-media {
       position: relative;
       border-radius: 12px;
-      height: 180px;
+      height: 260px;
       background: radial-gradient(circle at 65% 20%, rgba(255,255,255,0.15), transparent 40%),
                   radial-gradient(circle at 30% 65%, rgba(123,97,255,0.35), transparent 45%),
                   linear-gradient(160deg, #0a0f1d, #0f1a2e 60%, #0a0d16);
@@ -940,6 +939,252 @@
       color: var(--muted);
     }
 
+  
+    .room-section {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin: 6px 0 4px;
+    }
+
+    .room-tree {
+      border: 1px solid rgba(42, 53, 80, 0.55);
+      border-radius: 10px;
+      margin-bottom: 8px;
+      overflow: hidden;
+    }
+
+    .room-tree .room-parent {
+      background: rgba(12, 18, 30, 0.9);
+      font-weight: 600;
+    }
+
+    .room-tree .room-parent span:last-child {
+      transition: transform 0.2s ease;
+    }
+
+    .room-tree.open .room-parent span:last-child {
+      transform: rotate(90deg);
+    }
+
+    .room-children {
+      display: none;
+      padding: 4px 0;
+      background: rgba(8, 12, 20, 0.8);
+    }
+
+    .room-tree.open .room-children {
+      display: block;
+    }
+
+    .room-sub {
+      padding-left: 16px;
+    }
+
+    .room-city {
+      padding-left: 28px;
+      font-size: 12px;
+    }
+
+  
+    .stream-create {
+      margin-bottom: 8px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid rgba(123, 97, 255, 0.5);
+      background: rgba(12, 18, 30, 0.9);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .post-modal textarea {
+      min-height: 90px;
+    }
+
+  
+    .stream-media img,
+    .stream-media video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 10px;
+    }
+
+  
+    .stream-nav {
+      position: absolute;
+      left: 10px;
+      bottom: 10px;
+      display: flex;
+      gap: 6px;
+    }
+
+    .stream-nav button {
+      height: 30px;
+      padding: 0 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(123, 97, 255, 0.5);
+      background: rgba(10, 15, 26, 0.8);
+      color: #dfe7ff;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+  
+    .card.rooms-card {
+      display: none;
+    }
+
+    .titlebar strong {
+      font-size: 13px;
+    }
+
+    .messages {
+      padding-bottom: 80px;
+    }
+
+  
+    .chats {
+      border-right: 1px solid var(--line);
+      display: grid;
+      grid-template-rows: 30px auto auto 1fr auto 1fr;
+      gap: 8px;
+      padding: 10px;
+      background: #0c111b;
+    }
+
+    .chat-search input {
+      width: 100%;
+      height: 36px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #0e141d;
+      color: var(--text);
+      padding: 0 10px;
+      outline: none;
+    }
+
+    .chat-filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(123,97,255,0.4);
+      background: rgba(12,18,30,0.8);
+      color: var(--text);
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .chip.active {
+      background: rgba(123,97,255,0.2);
+      border-color: rgba(123,97,255,0.8);
+    }
+
+    .chat-list {
+      display: grid;
+      gap: 6px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .chat-section {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    @media (max-width: 980px) {
+      .content { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+      .chats { display: none; }
+      .sidebar { border-left: none; border-top: 1px solid var(--line); }
+    }
+
+  
+    .room-item {
+      border: none;
+      padding: 0;
+    }
+    .chat-row {
+      display: grid;
+      grid-template-columns: 36px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 8px;
+      border-radius: 10px;
+      background: rgba(12,18,30,0.6);
+      border: 1px solid rgba(42,53,80,0.4);
+      cursor: pointer;
+    }
+    .chat-row:hover {
+      border-color: rgba(123,97,255,0.7);
+    }
+    .chat-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(123,97,255,0.2);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .chat-name {
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--text);
+    }
+    .chat-preview {
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 140px;
+    }
+    .chat-meta {
+      display: grid;
+      gap: 4px;
+      justify-items: end;
+    }
+    .chat-time {
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .chat-badge {
+      background: var(--accent);
+      color: white;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+    }
+
+  
+    .room-item.active .chat-row {
+      border-color: rgba(123,97,255,0.9);
+      background: rgba(123,97,255,0.12);
+    }
+
+  
+    select {
+      width: 100%;
+      height: 42px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: #0e141d;
+      color: var(--text);
+      outline: none;
+      padding: 0 12px;
+      font-family: inherit;
+    }
+
   </style>
 </head>
 <body>
@@ -961,6 +1206,49 @@
       <div class="field" id="statusField" style="display:none;">
         <label for="authStatus">Estado</label>
         <input id="authStatus" type="text" placeholder="listo, away, ocupado..." />
+      </div>
+      <div class="field" id="typeField" style="display:none;">
+        <label for="authType">Tipo de cuenta</label>
+        <select id="authType">
+          <option value="personal">Personal</option>
+          <option value="empresa">Empresa</option>
+        </select>
+      </div>
+      <div class="field" id="personalField" style="display:none;">
+        <label for="authFullName">Nombre completo</label>
+        <input id="authFullName" type="text" placeholder="Tu nombre" />
+      </div>
+      <div class="field" id="personalContactField" style="display:none;">
+        <label for="authEmail">Correo</label>
+        <input id="authEmail" type="email" placeholder="correo@ejemplo.com" />
+      </div>
+      <div class="field" id="personalPhoneField" style="display:none;">
+        <label for="authPhone">Teléfono</label>
+        <input id="authPhone" type="text" placeholder="+591 ..." />
+      </div>
+      <div class="field" id="companyField" style="display:none;">
+        <label for="authCompanyName">Razón social</label>
+        <input id="authCompanyName" type="text" placeholder="Empresa SRL" />
+      </div>
+      <div class="field" id="companyTaxField" style="display:none;">
+        <label for="authTaxId">NIT / RUC</label>
+        <input id="authTaxId" type="text" placeholder="123456789" />
+      </div>
+      <div class="field" id="companyAddressField" style="display:none;">
+        <label for="authCompanyAddress">Dirección fiscal</label>
+        <input id="authCompanyAddress" type="text" placeholder="Av. Principal 123" />
+      </div>
+      <div class="field" id="companyEmailField" style="display:none;">
+        <label for="authCompanyEmail">Correo corporativo</label>
+        <input id="authCompanyEmail" type="email" placeholder="ventas@empresa.com" />
+      </div>
+      <div class="field" id="companyPhoneField" style="display:none;">
+        <label for="authCompanyPhone">Teléfono corporativo</label>
+        <input id="authCompanyPhone" type="text" placeholder="+591 ..." />
+      </div>
+      <div class="field" id="companyRepField" style="display:none;">
+        <label for="authLegalRep">Representante legal</label>
+        <input id="authLegalRep" type="text" placeholder="Nombre del representante" />
       </div>
       <div class="field" id="countryField" style="display:none;">
         <label for="authCountry">País</label>
@@ -995,6 +1283,49 @@
       <div class="field">
         <label for="profileStatus">Estado</label>
         <input id="profileStatus" type="text" placeholder="listo, away, ocupado..." />
+      </div>
+      <div class="field">
+        <label for="profileAccountType">Tipo de cuenta</label>
+        <select id="profileAccountType">
+          <option value="personal">Personal</option>
+          <option value="empresa">Empresa</option>
+        </select>
+      </div>
+      <div class="field" id="profilePersonalField">
+        <label for="profileFullName">Nombre completo</label>
+        <input id="profileFullName" type="text" placeholder="Tu nombre" />
+      </div>
+      <div class="field" id="profileEmailField">
+        <label for="profileEmail">Correo</label>
+        <input id="profileEmail" type="email" placeholder="correo@ejemplo.com" />
+      </div>
+      <div class="field" id="profilePhoneField">
+        <label for="profilePhone">Teléfono</label>
+        <input id="profilePhone" type="text" placeholder="+591 ..." />
+      </div>
+      <div class="field" id="profileCompanyField">
+        <label for="profileCompanyName">Razón social</label>
+        <input id="profileCompanyName" type="text" placeholder="Empresa SRL" />
+      </div>
+      <div class="field" id="profileTaxField">
+        <label for="profileTaxId">NIT / RUC</label>
+        <input id="profileTaxId" type="text" placeholder="123456789" />
+      </div>
+      <div class="field" id="profileCompanyAddressField">
+        <label for="profileCompanyAddress">Dirección fiscal</label>
+        <input id="profileCompanyAddress" type="text" placeholder="Av. Principal 123" />
+      </div>
+      <div class="field" id="profileCompanyEmailField">
+        <label for="profileCompanyEmail">Correo corporativo</label>
+        <input id="profileCompanyEmail" type="email" placeholder="ventas@empresa.com" />
+      </div>
+      <div class="field" id="profileCompanyPhoneField">
+        <label for="profileCompanyPhone">Teléfono corporativo</label>
+        <input id="profileCompanyPhone" type="text" placeholder="+591 ..." />
+      </div>
+      <div class="field" id="profileLegalRepField">
+        <label for="profileLegalRep">Representante legal</label>
+        <input id="profileLegalRep" type="text" placeholder="Nombre del representante" />
       </div>
       <div class="field">
         <label for="profileCountry">País</label>
@@ -1047,6 +1378,8 @@
         <div>
           <div id="viewNick" class="nick">-</div>
           <div id="viewStatus">-</div>
+          <div id="viewAccountType" class="bio">-</div>
+          <div id="viewCompanyName" class="bio">-</div>
           <div id="viewRegion" class="bio">-</div>
           <div id="viewBio" class="bio">-</div>
         </div>
@@ -1078,6 +1411,28 @@
   </div>
 </div>
 
+  <div class="overlay" id="postOverlay" style="display:none;">
+    <div class="profile-modal post-modal">
+      <h3>Publicar en el muro</h3>
+      <div class="field">
+        <label for="postFile">Video o imagen (máx 50MB, video 30s)</label>
+        <input id="postFile" type="file" accept="video/*,image/*" />
+      </div>
+      <div class="field">
+        <label for="postCaption">Descripción</label>
+        <textarea id="postCaption" placeholder="Escribe algo breve..."></textarea>
+      </div>
+      <div class="profile-error" id="postError"></div>
+      <div class="profile-actions sticky">
+        <span class="muted" id="postStatus">Listo para publicar</span>
+        <div>
+          <button id="postCancel" type="button" class="mini">Cancelar</button>
+          <button id="postSend" type="button">Publicar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="window" role="application" aria-label="mIRC moderno">
     <div class="titlebar">
       <div class="left">
@@ -1087,12 +1442,26 @@
           <span class="led green"></span>
         </div>
         <button class="mobile-menu-btn" id="menuBtn" type="button">Menu</button>
-        <strong>mIRC Moderno · <span id="roomLabel">#general</span></strong>
+        <strong>cambachat · <span id="roomLabel">#general</span></strong>
       </div>
       <div class="right" id="connStatus">Conectando...</div>
     </div>
 
     <div class="content">
+            <aside class="chats">
+        <div class="section-title">Chats</div>
+        <div class="chat-search">
+          <input id="chatSearch" type="text" placeholder="Buscar" />
+        </div>
+        <div class="chat-filters">
+          <button class="chip active" type="button">Todos</button>
+          <button class="chip" type="button">Unread</button>
+          <button class="chip" type="button">Favoritos</button>
+        </div>
+        <div class="chat-list" id="roomList"></div>
+        <div class="chat-section">Privados</div>
+        <div class="chat-list" id="dmList"></div>
+      </aside>
       <div class="chat">
         <div class="channelbar">
           <span>Canal: <span id="roomLabel2">#general</span></span>
@@ -1111,6 +1480,8 @@
               <div>
                 <div id="selfNick" class="nick">-</div>
                 <div id="selfStatus">-</div>
+                <div id="selfAccountType" class="bio">-</div>
+                <div id="selfCompanyName" class="bio">-</div>
                 <div id="selfRegion" class="bio">-</div>
                 <div id="selfBio" class="bio">-</div>
               </div>
@@ -1123,20 +1494,7 @@
               <button class="mini" id="btnLogout" type="button">Cerrar sesión</button>
             </div>
           </div>
-          <div class="card">
-            <h3>Salas</h3>
-            <div class="rooms">
-              <div class="room-list" id="roomList"></div>
-              <div class="room-create">
-                <input id="roomInput" type="text" placeholder="#diseño" />
-                <button class="mini" id="roomJoin" type="button">Entrar</button>
-              </div>
-            </div>
-          </div>
-          <div class="card">
-            <h3>Privados</h3>
-            <div class="dm-list" id="dmList"></div>
-          </div>
+                    </div>
           <div class="card">
             <h3>Historial</h3>
             <div class="history">
@@ -1178,50 +1536,13 @@
 
       <aside class="sidebar">
         <div class="section-title">Visualizador</div>
-        <div class="stream" id="stream">
-          <div class="stream-card">
-            <div class="stream-media">
-              <div class="stream-glow"></div>
-              <div class="stream-play">▶</div>
-            </div>
-            <div class="stream-meta">
-              <div class="stream-title">Dream state · Luna</div>
-              <div class="stream-author">@caramba · #pais-argentina</div>
-              <div class="stream-caption">Here for you always ✨</div>
-            </div>
-            <div class="stream-actions">
-              <button class="stream-btn">⟳</button>
-              <button class="stream-btn">❤</button>
-              <button class="stream-btn">💬</button>
-              <button class="stream-btn">↗</button>
-            </div>
-          </div>
-          <div class="stream-queue">
-            <div class="queue-item">
-              <div class="queue-dot"></div>
-              <div>
-                <div class="queue-title">Post musical · #general</div>
-                <div class="queue-sub">Winterpens · 5.5K</div>
-              </div>
-            </div>
-            <div class="queue-item">
-              <div class="queue-dot alt"></div>
-              <div>
-                <div class="queue-title">Clip nocturno · #pais-argentina</div>
-                <div class="queue-sub">Caramba · 272</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="motd">
-          <strong>Motd</strong><br />
-          Respeta a los demás, nada de spam, y comparte música.
-        </div>
+        <button class="stream-create" id="postOpen" type="button">Publicar</button>
+        <div class="stream" id="stream"></div>
       </aside>
     </div>
 
     <div class="inputbar">
-      <input id="input" type="text" placeholder="Escribe un mensaje o /comando..." aria-label="Mensaje" disabled />
+      <input id="input" type="text" placeholder="Escribe tu anuncio o consulta..." aria-label="Mensaje" disabled />
       <button class="send" id="sendBtn" type="button" disabled>Enviar</button>
     </div>
 
@@ -1260,6 +1581,8 @@
     const userCount = document.getElementById("userCount");
     const selfNick = document.getElementById("selfNick");
     const selfStatus = document.getElementById("selfStatus");
+    const selfAccountType = document.getElementById("selfAccountType");
+    const selfCompanyName = document.getElementById("selfCompanyName");
     const selfRegion = document.getElementById("selfRegion");
     const selfActive = document.getElementById("selfActive");
     const selfBio = document.getElementById("selfBio");
@@ -1275,10 +1598,30 @@
     const authNick = document.getElementById("authNick");
     const authPass = document.getElementById("authPass");
     const authStatus = document.getElementById("authStatus");
+    const authType = document.getElementById("authType");
+    const authFullName = document.getElementById("authFullName");
+    const authEmail = document.getElementById("authEmail");
+    const authPhone = document.getElementById("authPhone");
+    const authCompanyName = document.getElementById("authCompanyName");
+    const authTaxId = document.getElementById("authTaxId");
+    const authCompanyAddress = document.getElementById("authCompanyAddress");
+    const authCompanyEmail = document.getElementById("authCompanyEmail");
+    const authCompanyPhone = document.getElementById("authCompanyPhone");
+    const authLegalRep = document.getElementById("authLegalRep");
     const authCountry = document.getElementById("authCountry");
     const authState = document.getElementById("authState");
     const authCity = document.getElementById("authCity");
     const statusField = document.getElementById("statusField");
+    const typeField = document.getElementById("typeField");
+    const personalField = document.getElementById("personalField");
+    const personalContactField = document.getElementById("personalContactField");
+    const personalPhoneField = document.getElementById("personalPhoneField");
+    const companyField = document.getElementById("companyField");
+    const companyTaxField = document.getElementById("companyTaxField");
+    const companyAddressField = document.getElementById("companyAddressField");
+    const companyEmailField = document.getElementById("companyEmailField");
+    const companyPhoneField = document.getElementById("companyPhoneField");
+    const companyRepField = document.getElementById("companyRepField");
     const countryField = document.getElementById("countryField");
     const stateField = document.getElementById("stateField");
     const cityField = document.getElementById("cityField");
@@ -1290,6 +1633,16 @@
     const profileOverlay = document.getElementById("profileOverlay");
     const profileNick = document.getElementById("profileNick");
     const profileStatus = document.getElementById("profileStatus");
+    const profileAccountType = document.getElementById("profileAccountType");
+    const profileFullName = document.getElementById("profileFullName");
+    const profileEmail = document.getElementById("profileEmail");
+    const profilePhone = document.getElementById("profilePhone");
+    const profileCompanyName = document.getElementById("profileCompanyName");
+    const profileTaxId = document.getElementById("profileTaxId");
+    const profileCompanyAddress = document.getElementById("profileCompanyAddress");
+    const profileCompanyEmail = document.getElementById("profileCompanyEmail");
+    const profileCompanyPhone = document.getElementById("profileCompanyPhone");
+    const profileLegalRep = document.getElementById("profileLegalRep");
     const profileCountry = document.getElementById("profileCountry");
     const profileState = document.getElementById("profileState");
     const profileCity = document.getElementById("profileCity");
@@ -1306,6 +1659,8 @@
     const viewAvatar = document.getElementById("viewAvatar");
     const viewNick = document.getElementById("viewNick");
     const viewStatus = document.getElementById("viewStatus");
+    const viewAccountType = document.getElementById("viewAccountType");
+    const viewCompanyName = document.getElementById("viewCompanyName");
     const viewRegion = document.getElementById("viewRegion");
     const viewBio = document.getElementById("viewBio");
     const viewActive = document.getElementById("viewActive");
@@ -1349,6 +1704,7 @@
     let historyEnabled = localStorage.getItem("historyEnabled") !== "0";
     let pendingAvatar = "";
     let currentUsers = [];
+    let currentRooms = [];
     const dmThreads = new Map();
     let soundEnabled = localStorage.getItem("soundEnabled") !== "0";
     let notifEnabled = localStorage.getItem("notifEnabled") === "1";
@@ -1360,7 +1716,272 @@
 
     const quickEmojis = ["👍", "😂", "🔥", "❤️"];
 
+    
+    const firebaseConfig = {
+      apiKey: "AIzaSyDEHHOYxPgMW5SeuyNcHfF2fRaxmbHAanw",
+      authDomain: "chat-69e73.firebaseapp.com",
+      projectId: "chat-69e73",
+      storageBucket: "chat-69e73.firebasestorage.app",
+      messagingSenderId: "231503681962",
+      appId: "1:231503681962:web:d6b690c8432e6c00fb33d3"
+    };
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const firestore = firebase.firestore();
+    const storage = firebase.storage();
+
     const WS_URL = window.WS_URL || window.__WS_URL || localStorage.getItem("ws_url") || "";
+
+
+    const postOverlay = document.getElementById("postOverlay");
+    const postOpen = document.getElementById("postOpen");
+    const postFile = document.getElementById("postFile");
+    const postCaption = document.getElementById("postCaption");
+    const postError = document.getElementById("postError");
+    const postStatus = document.getElementById("postStatus");
+    const postCancel = document.getElementById("postCancel");
+    const postSend = document.getElementById("postSend");
+    const streamEl = document.getElementById("stream");
+
+    let postUnsub = null;
+    let currentPosts = [];
+
+    function openPostModal() {
+      if (postOverlay) postOverlay.style.display = "grid";
+      if (postError) postError.textContent = "";
+      if (postStatus) postStatus.textContent = "Listo para publicar";
+      if (postCaption) postCaption.value = "";
+      if (postFile) postFile.value = "";
+    }
+
+    function closePostModal() {
+      if (postOverlay) postOverlay.style.display = "none";
+    }
+
+    function sanitizeKey(value) {
+      return String(value || "user").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 24);
+    }
+
+    async function getVideoDuration(file) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const video = document.createElement("video");
+        video.preload = "metadata";
+        video.onloadedmetadata = () => {
+          const duration = video.duration || 0;
+          URL.revokeObjectURL(url);
+          resolve(duration);
+        };
+        video.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error("No se pudo leer el video"));
+        };
+        video.src = url;
+      });
+    }
+
+    async function publishPost() {
+      if (!postFile || !postFile.files || !postFile.files[0]) {
+        postError.textContent = "Selecciona un archivo.";
+        return;
+      }
+      const file = postFile.files[0];
+      if (file.size > 50 * 1024 * 1024) {
+        postError.textContent = "Máximo 50MB.";
+        return;
+      }
+      const isVideo = file.type.startsWith("video/");
+      if (isVideo) {
+        try {
+          const duration = await getVideoDuration(file);
+          if (duration > 30.5) {
+            postError.textContent = "El video debe ser de 30s o menos.";
+            return;
+          }
+        } catch {
+          postError.textContent = "No se pudo validar el video.";
+          return;
+        }
+      }
+      postError.textContent = "";
+      postStatus.textContent = "Subiendo...";
+
+      const nick = self && self.nick ? self.nick : "anon";
+      const room = currentRoom || "#general";
+      const ext = file.name.split(".").pop() || (isVideo ? "mp4" : "jpg");
+      const safeNick = sanitizeKey(nick);
+      const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const path = `posts/${safeNick}/${id}.${ext}`;
+      const ref = storage.ref().child(path);
+
+      try {
+        await ref.put(file);
+        const url = await ref.getDownloadURL();
+        await firestore.collection("posts").add({
+          nick,
+          room,
+          type: isVideo ? "video" : "image",
+          url,
+          caption: (postCaption.value || "").trim(),
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          commentCount: 0,
+          likeCount: 0
+        });
+        postStatus.textContent = "Publicado";
+        setTimeout(closePostModal, 600);
+      } catch (e) {
+        postError.textContent = "Error al publicar.";
+        postStatus.textContent = "";
+      }
+    }
+
+    let currentPostIndex = 0;
+
+    function renderStream(posts, index = 0) {
+      if (!streamEl) return;
+      if (!posts.length) {
+        streamEl.innerHTML = `<div class="muted">Aún no hay publicaciones.</div>`;
+        return;
+      }
+      currentPostIndex = Math.max(0, Math.min(index, posts.length - 1));
+      const main = posts[currentPostIndex];
+      const media = main.type === "video"
+        ? `<video src="${main.url}" controls playsinline muted></video>`
+        : `<img src="${main.url}" alt="post" />`;
+      const caption = main.caption || "";
+      streamEl.innerHTML = `
+        <div class="stream-card">
+          <div class="stream-media">${media}</div>
+          <div class="stream-meta">
+            <div class="stream-title">${main.room || "#general"}</div>
+            <div class="stream-author">@${main.nick}</div>
+            <div class="stream-caption">${caption}</div>
+          </div>
+          <div class="stream-actions">
+            <button class="stream-btn">⟳</button>
+            <button class="stream-btn">❤ ${main.likeCount || 0}</button>
+            <button class="stream-btn">💬 ${main.commentCount || 0}</button>
+            <button class="stream-btn">↗</button>
+          </div>
+          <div class="stream-nav">
+            <button class="prev">◀</button>
+            <button class="next">▶</button>
+          </div>
+        </div>
+        <div class="stream-queue">
+          ${posts.map((p, idx) => `
+            <div class="queue-item" data-idx="${idx}">
+              <div class="queue-dot"></div>
+              <div>
+                <div class="queue-title">${p.room || "#general"}</div>
+                <div class="queue-sub">${p.nick}</div>
+              </div>
+            </div>`).join("") }
+        </div>
+      `;
+      const prevBtn = streamEl.querySelector('.prev');
+      const nextBtn = streamEl.querySelector('.next');
+      if (prevBtn) prevBtn.addEventListener('click', () => {
+        renderStream(posts, currentPostIndex - 1);
+      });
+      if (nextBtn) nextBtn.addEventListener('click', () => {
+        renderStream(posts, currentPostIndex + 1);
+      });
+      streamEl.querySelectorAll(".queue-item").forEach((el) => {
+        el.addEventListener("click", () => {
+          const idx = parseInt(el.getAttribute("data-idx"), 10);
+          renderStream(posts, isNaN(idx) ? 0 : idx);
+        });
+      });
+    }
+
+    function subscribePosts(room) {
+      if (postUnsub) postUnsub();
+      const roomName = room || "#general";
+      postUnsub = firestore
+        .collection("posts")
+        .where("room", "==", roomName)
+        .orderBy("createdAt", "desc")
+        .limit(10)
+        .onSnapshot(async (snap) => {
+          currentPosts = [];
+          snap.forEach((doc) => {
+            currentPosts.push({ id: doc.id, ...doc.data() });
+          });
+          if (!currentPosts.length && roomName !== "#general") {
+            try {
+              const fallback = await firestore
+                .collection("posts")
+                .orderBy("createdAt", "desc")
+                .limit(10)
+                .get();
+              fallback.forEach((doc) => {
+                currentPosts.push({ id: doc.id, ...doc.data() });
+              });
+            } catch (e) {
+              // ignore
+            }
+          }
+          renderStream(currentPosts);
+        });
+    }
+
+    if (postOpen) postOpen.addEventListener("click", openPostModal);
+    if (postCancel) postCancel.addEventListener("click", closePostModal);
+    if (postSend) postSend.addEventListener("click", publishPost);
+    if (postOverlay) postOverlay.addEventListener("click", (e) => {
+      if (e.target === postOverlay) closePostModal();
+    });
+
+
+    const chatSearch = document.getElementById("chatSearch");
+
+    const roomLast = new Map();
+    const roomUnread = new Map();
+
+    function renderChatList(filter = "") {
+      if (!roomListEl) return;
+      const query = (filter || "").toLowerCase();
+      const rooms = Array.from(roomListEl.querySelectorAll(".room-item"));
+      // If roomListEl is empty (first render), build list from server rooms
+      if (!rooms.length && currentRooms.length) {
+        roomListEl.innerHTML = "";
+        currentRooms.forEach((room) => {
+          const item = document.createElement("div");
+          item.className = "room-item";
+          item.dataset.room = room.name;
+          const last = roomLast.get(room.name) || {};
+          item.innerHTML = `
+            <div class="chat-row">
+              <div class="chat-avatar">#</div>
+              <div class="chat-info">
+                <div class="chat-name">${room.name}</div>
+                <div class="chat-preview">${last.text || "Sin mensajes"}</div>
+              </div>
+              <div class="chat-meta">
+                <div class="chat-time">${last.time || ""}</div>
+                ${roomUnread.get(room.name) ? `<span class="chat-badge">${roomUnread.get(room.name)}</span>` : ""}
+              </div>
+            </div>`;
+          item.addEventListener("click", () => joinRoom(room.name));
+          roomListEl.appendChild(item);
+        });
+      }
+      // filter
+      roomListEl.querySelectorAll('.room-item').forEach((el) => {
+        const name = (el.dataset.room || "").toLowerCase();
+        el.style.display = name.includes(query) ? "" : "none";
+      });
+      updateRoomLabels();
+    }
+
+    if (chatSearch) {
+      chatSearch.addEventListener("input", (e) => {
+        renderChatList(e.target.value);
+      });
+    }
 
     function connect() {
       const proto = location.protocol === "https:" ? "wss" : "ws";
@@ -1392,16 +2013,20 @@
           renderRooms(payload.rooms || []);
           updateProfile();
           updateStatusBar();
+          subscribePosts(currentRoom);
           return;
         }
 
         if (payload.type === "rooms") {
-          renderRooms(payload.rooms || []);
+          currentRooms = payload.rooms || [];
+          renderRooms(currentRooms);
+          renderChatList(chatSearch ? chatSearch.value : "");
           return;
         }
 
         if (payload.type === "room_sync") {
           currentRoom = payload.room;
+          roomUnread.set(currentRoom, 0);
           updateRoomLabels();
           if (historyEnabled) {
             messagesEl.innerHTML = "";
@@ -1410,6 +2035,7 @@
             (payload.messages || []).forEach(renderMessage);
           }
           renderUsers(payload.users || []);
+          subscribePosts(currentRoom);
           return;
         }
 
@@ -1421,6 +2047,15 @@
         if (payload.type === "message") {
           renderMessage(payload.message);
           maybeNotify(payload.message);
+          const msg = payload.message;
+          const roomName = msg && msg.room ? msg.room : currentRoom;
+          if (roomName) {
+            roomLast.set(roomName, { text: msg.text || "", time: msg.time || "" });
+            if (roomName !== currentRoom) {
+              roomUnread.set(roomName, (roomUnread.get(roomName) || 0) + 1);
+            }
+          }
+          renderChatList(chatSearch ? chatSearch.value : "");
           return;
         }
 
@@ -1551,28 +2186,24 @@
       roomLabel.textContent = currentRoom;
       roomLabel2.textContent = currentRoom;
       roomLabel3.textContent = currentRoom;
-      Array.from(roomListEl.children).forEach((el) => {
+      if (!roomListEl) return;
+      roomListEl.querySelectorAll(".room-item").forEach((el) => {
         el.classList.toggle("active", el.dataset.room === currentRoom);
       });
     }
 
     function renderRooms(rooms) {
-      roomListEl.innerHTML = "";
-      rooms.forEach((room) => {
-        const item = document.createElement("div");
-        item.className = "room-item";
-        item.dataset.room = room.name;
-        item.innerHTML = `<span>${room.name}</span><span>${room.count}</span>`;
-        item.addEventListener("click", () => joinRoom(room.name));
-        roomListEl.appendChild(item);
-      });
-      updateRoomLabels();
+      currentRooms = rooms;
+      renderChatList(chatSearch ? chatSearch.value : "");
     }
 
     function renderUsers(users) {
       currentUsers = users;
+      if (userCount) userCount.textContent = `Usuarios: ${users.length}`;
+      if (!userListEl) {
+        return;
+      }
       userListEl.innerHTML = "";
-      userCount.textContent = `Usuarios: ${users.length}`;
       users.forEach((u) => {
         const div = document.createElement("div");
         div.className = `user ${u.status.toLowerCase().includes("away") ? "away" : ""}`;
@@ -1618,6 +2249,8 @@
       selfNick.textContent = self ? self.nick : "-";
       selfNick.style.color = nickColor || "";
       selfStatus.textContent = self ? self.status : "-";
+      if (selfAccountType) selfAccountType.textContent = self ? `Tipo: ${self.accountType || "personal"}` : "-";
+      if (selfCompanyName) selfCompanyName.textContent = self && self.accountType === "empresa" ? (self.companyName || "Empresa") : "";
       if (selfRegion) selfRegion.textContent = region;
       selfBio.textContent = self && self.bio ? self.bio : "-";
       selfActive.textContent = self ? self.lastActive : "-";
@@ -1874,6 +2507,17 @@
       tabLogin.classList.toggle("active", mode === "login");
       tabRegister.classList.toggle("active", mode === "register");
       if (statusField) statusField.style.display = mode === "register" ? "block" : "none";
+      if (typeField) typeField.style.display = mode === "register" ? "block" : "none";
+      const isCompany = authType && authType.value === "empresa";
+      if (personalField) personalField.style.display = mode === "register" && !isCompany ? "block" : "none";
+      if (personalContactField) personalContactField.style.display = mode === "register" && !isCompany ? "block" : "none";
+      if (personalPhoneField) personalPhoneField.style.display = mode === "register" && !isCompany ? "block" : "none";
+      if (companyField) companyField.style.display = mode === "register" && isCompany ? "block" : "none";
+      if (companyTaxField) companyTaxField.style.display = mode === "register" && isCompany ? "block" : "none";
+      if (companyAddressField) companyAddressField.style.display = mode === "register" && isCompany ? "block" : "none";
+      if (companyEmailField) companyEmailField.style.display = mode === "register" && isCompany ? "block" : "none";
+      if (companyPhoneField) companyPhoneField.style.display = mode === "register" && isCompany ? "block" : "none";
+      if (companyRepField) companyRepField.style.display = mode === "register" && isCompany ? "block" : "none";
       if (countryField) countryField.style.display = mode === "register" ? "block" : "none";
       if (stateField) stateField.style.display = mode === "register" ? "block" : "none";
       if (cityField) cityField.style.display = mode === "register" ? "block" : "none";
@@ -1886,6 +2530,16 @@
       if (!self) return;
       profileNick.value = self.nick || "";
       profileStatus.value = self.status || "";
+      if (profileAccountType) profileAccountType.value = self.accountType || "personal";
+      if (profileFullName) profileFullName.value = self.fullName || "";
+      if (profileEmail) profileEmail.value = self.email || "";
+      if (profilePhone) profilePhone.value = self.phone || "";
+      if (profileCompanyName) profileCompanyName.value = self.companyName || "";
+      if (profileTaxId) profileTaxId.value = self.taxId || "";
+      if (profileCompanyAddress) profileCompanyAddress.value = self.companyAddress || "";
+      if (profileCompanyEmail) profileCompanyEmail.value = self.companyEmail || "";
+      if (profileCompanyPhone) profileCompanyPhone.value = self.companyPhone || "";
+      if (profileLegalRep) profileLegalRep.value = self.legalRep || "";
       if (profileCountry) profileCountry.value = self.country || "";
       if (profileState) profileState.value = self.state || "";
       if (profileCity) profileCity.value = self.city || "";
@@ -1910,6 +2564,16 @@
         country: profileCountry ? profileCountry.value.trim() : "",
         state: profileState ? profileState.value.trim() : "",
         city: profileCity ? profileCity.value.trim() : "",
+        accountType: profileAccountType ? profileAccountType.value : "personal",
+        fullName: profileFullName ? profileFullName.value.trim() : "",
+        email: profileEmail ? profileEmail.value.trim() : "",
+        phone: profilePhone ? profilePhone.value.trim() : "",
+        companyName: profileCompanyName ? profileCompanyName.value.trim() : "",
+        taxId: profileTaxId ? profileTaxId.value.trim() : "",
+        companyAddress: profileCompanyAddress ? profileCompanyAddress.value.trim() : "",
+        companyEmail: profileCompanyEmail ? profileCompanyEmail.value.trim() : "",
+        companyPhone: profileCompanyPhone ? profileCompanyPhone.value.trim() : "",
+        legalRep: profileLegalRep ? profileLegalRep.value.trim() : "",
         bio: profileBio.value.trim(),
         color: profileColor.value
       };
@@ -1934,6 +2598,8 @@
       viewNick.textContent = user.nick;
       viewNick.style.color = user.color || "";
       viewStatus.textContent = user.status || "-";
+      if (viewAccountType) viewAccountType.textContent = `Tipo: ${user.accountType || "personal"}`;
+      if (viewCompanyName) viewCompanyName.textContent = user.accountType === "empresa" ? (user.companyName || "Empresa") : "";
       if (viewRegion) {
         const region = [user.country, user.state, user.city].filter(Boolean).join(" · ") || "-";
         viewRegion.textContent = region;
@@ -2064,7 +2730,17 @@
         const country = (authCountry.value || "").trim();
         const state = (authState.value || "").trim();
         const city = (authCity.value || "").trim();
-        ws.send(JSON.stringify({ type: "register", nick, password, status, country, state, city }));
+        const accountType = authType ? authType.value : "personal";
+        const fullName = (authFullName && authFullName.value || "").trim();
+        const email = (authEmail && authEmail.value || "").trim();
+        const phone = (authPhone && authPhone.value || "").trim();
+        const companyName = (authCompanyName && authCompanyName.value || "").trim();
+        const taxId = (authTaxId && authTaxId.value || "").trim();
+        const companyAddress = (authCompanyAddress && authCompanyAddress.value || "").trim();
+        const companyEmail = (authCompanyEmail && authCompanyEmail.value || "").trim();
+        const companyPhone = (authCompanyPhone && authCompanyPhone.value || "").trim();
+        const legalRep = (authLegalRep && authLegalRep.value || "").trim();
+        ws.send(JSON.stringify({ type: "register", nick, password, status, country, state, city, accountType, fullName, email, phone, companyName, taxId, companyAddress, companyEmail, companyPhone, legalRep }));
       } else {
         ws.send(JSON.stringify({ type: "login", nick, password }));
       }
@@ -2078,6 +2754,10 @@
       switchMode(mode === "register" ? "login" : "register");
     });
 
+    if (authType) {
+      authType.addEventListener("change", () => switchMode(mode));
+    }
+
     if (authPass) {
       authPass.addEventListener("keydown", (e) => {
         if (e.key === "Enter") sendAuth(mode === "register" ? "register" : "login");
@@ -2089,6 +2769,23 @@
     }
 
     btnProfile.addEventListener("click", openProfileEditor);
+
+    if (profileAccountType) {
+      const toggleProfileFields = () => {
+        const isCompany = profileAccountType.value === "empresa";
+        if (profileCompanyName) profileCompanyName.closest(".field").style.display = isCompany ? "block" : "none";
+        if (profileTaxId) profileTaxId.closest(".field").style.display = isCompany ? "block" : "none";
+        if (profileCompanyAddress) profileCompanyAddress.closest(".field").style.display = isCompany ? "block" : "none";
+        if (profileCompanyEmail) profileCompanyEmail.closest(".field").style.display = isCompany ? "block" : "none";
+        if (profileCompanyPhone) profileCompanyPhone.closest(".field").style.display = isCompany ? "block" : "none";
+        if (profileLegalRep) profileLegalRep.closest(".field").style.display = isCompany ? "block" : "none";
+        if (profileFullName) profileFullName.closest(".field").style.display = isCompany ? "none" : "block";
+        if (profileEmail) profileEmail.closest(".field").style.display = isCompany ? "none" : "block";
+        if (profilePhone) profilePhone.closest(".field").style.display = isCompany ? "none" : "block";
+      };
+      profileAccountType.addEventListener("change", toggleProfileFields);
+      toggleProfileFields();
+    }
 
     profileSave.addEventListener("click", saveProfile);
     profileCancel.addEventListener("click", closeProfile);
@@ -2165,18 +2862,22 @@
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: "logout", token: authToken }));
       }
-      auth.signOut().catch(() => {});
+      if (typeof auth !== "undefined" && auth && auth.signOut) {
+        auth.signOut().catch(() => {});
+      }
       authOverlay.style.display = "grid";
       inputEl.disabled = true;
       sendBtn.disabled = true;
     });
 
-    roomJoin.addEventListener("click", () => {
-      const room = roomInput.value.trim();
-      if (!room) return;
-      joinRoom(room);
-      roomInput.value = "";
-    });
+    if (roomJoin) {
+      roomJoin.addEventListener("click", () => {
+        const room = roomInput ? roomInput.value.trim() : "";
+        if (!room) return;
+        joinRoom(room);
+        if (roomInput) roomInput.value = "";
+      });
+    }
 
     historyLoad.addEventListener("click", () => {
       historyEnabled = true;

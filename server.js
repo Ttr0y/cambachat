@@ -270,7 +270,9 @@ function userList(room) {
       bio: u.bio || "",
       country: u.country || "",
       state: u.state || "",
-      city: u.city || ""
+      city: u.city || "",
+      accountType: u.accountType || "personal",
+      companyName: u.companyName || ""
     }));
 }
 
@@ -488,6 +490,36 @@ function updateProfile(u, patch) {
   if (typeof patch.city === "string") {
     u.city = patch.city.trim().slice(0, 40);
   }
+  if (typeof patch.accountType === "string") {
+    u.accountType = patch.accountType === "empresa" ? "empresa" : "personal";
+  }
+  if (typeof patch.fullName === "string") {
+    u.fullName = patch.fullName.trim().slice(0, 60);
+  }
+  if (typeof patch.email === "string") {
+    u.email = patch.email.trim().slice(0, 80);
+  }
+  if (typeof patch.phone === "string") {
+    u.phone = patch.phone.trim().slice(0, 30);
+  }
+  if (typeof patch.companyName === "string") {
+    u.companyName = patch.companyName.trim().slice(0, 80);
+  }
+  if (typeof patch.taxId === "string") {
+    u.taxId = patch.taxId.trim().slice(0, 40);
+  }
+  if (typeof patch.companyAddress === "string") {
+    u.companyAddress = patch.companyAddress.trim().slice(0, 120);
+  }
+  if (typeof patch.companyEmail === "string") {
+    u.companyEmail = patch.companyEmail.trim().slice(0, 80);
+  }
+  if (typeof patch.companyPhone === "string") {
+    u.companyPhone = patch.companyPhone.trim().slice(0, 30);
+  }
+  if (typeof patch.legalRep === "string") {
+    u.legalRep = patch.legalRep.trim().slice(0, 80);
+  }
 
   if (u.country || u.state || u.city) {
     ensureRegionRooms(u.country, u.state, u.city);
@@ -501,6 +533,16 @@ function updateProfile(u, patch) {
     accounts[u.nick].country = u.country || "";
     accounts[u.nick].state = u.state || "";
     accounts[u.nick].city = u.city || "";
+    accounts[u.nick].accountType = u.accountType || "personal";
+    accounts[u.nick].fullName = u.fullName || "";
+    accounts[u.nick].email = u.email || "";
+    accounts[u.nick].phone = u.phone || "";
+    accounts[u.nick].companyName = u.companyName || "";
+    accounts[u.nick].taxId = u.taxId || "";
+    accounts[u.nick].companyAddress = u.companyAddress || "";
+    accounts[u.nick].companyEmail = u.companyEmail || "";
+    accounts[u.nick].companyPhone = u.companyPhone || "";
+    accounts[u.nick].legalRep = u.legalRep || "";
     saveUsers();
   }
 }
@@ -678,6 +720,16 @@ wss.on("connection", (ws) => {
     country: "",
     state: "",
     city: "",
+    accountType: "personal",
+    fullName: "",
+    email: "",
+    phone: "",
+    companyName: "",
+    taxId: "",
+    companyAddress: "",
+    companyEmail: "",
+    companyPhone: "",
+    legalRep: "",
     ip,
     blocked: []
   };
@@ -734,6 +786,19 @@ wss.on("connection", (ws) => {
       u.country = accounts[nick].country || "";
       u.state = accounts[nick].state || "";
       u.city = accounts[nick].city || "";
+      u.country = accounts[nick].country || "";
+      u.state = accounts[nick].state || "";
+      u.city = accounts[nick].city || "";
+      u.accountType = accounts[nick].accountType || "personal";
+      u.fullName = accounts[nick].fullName || "";
+      u.email = accounts[nick].email || "";
+      u.phone = accounts[nick].phone || "";
+      u.companyName = accounts[nick].companyName || "";
+      u.taxId = accounts[nick].taxId || "";
+      u.companyAddress = accounts[nick].companyAddress || "";
+      u.companyEmail = accounts[nick].companyEmail || "";
+      u.companyPhone = accounts[nick].companyPhone || "";
+      u.legalRep = accounts[nick].legalRep || "";
       const regionRooms = ensureRegionRooms(u.country, u.state, u.city);
       const preferred = accounts[nick].lastRoom || pickDefaultRoom(regionRooms);
       u.authenticated = true;
@@ -818,6 +883,19 @@ wss.on("connection", (ws) => {
       u.country = accounts[nick].country || "";
       u.state = accounts[nick].state || "";
       u.city = accounts[nick].city || "";
+      u.country = accounts[nick].country || "";
+      u.state = accounts[nick].state || "";
+      u.city = accounts[nick].city || "";
+      u.accountType = accounts[nick].accountType || "personal";
+      u.fullName = accounts[nick].fullName || "";
+      u.email = accounts[nick].email || "";
+      u.phone = accounts[nick].phone || "";
+      u.companyName = accounts[nick].companyName || "";
+      u.taxId = accounts[nick].taxId || "";
+      u.companyAddress = accounts[nick].companyAddress || "";
+      u.companyEmail = accounts[nick].companyEmail || "";
+      u.companyPhone = accounts[nick].companyPhone || "";
+      u.legalRep = accounts[nick].legalRep || "";
       const regionRooms = ensureRegionRooms(u.country, u.state, u.city);
       const preferred = accounts[nick].lastRoom || pickDefaultRoom(regionRooms);
       u.authenticated = true;
@@ -856,6 +934,16 @@ wss.on("connection", (ws) => {
       const country = String(payload.country || "").trim();
       const state = String(payload.state || "").trim();
       const city = String(payload.city || "").trim();
+      const accountType = String(payload.accountType || "personal").trim();
+      const fullName = String(payload.fullName || "").trim();
+      const email = String(payload.email || "").trim();
+      const phone = String(payload.phone || "").trim();
+      const companyName = String(payload.companyName || "").trim();
+      const taxId = String(payload.taxId || "").trim();
+      const companyAddress = String(payload.companyAddress || "").trim();
+      const companyEmail = String(payload.companyEmail || "").trim();
+      const companyPhone = String(payload.companyPhone || "").trim();
+      const legalRep = String(payload.legalRep || "").trim();
 
       if (!nick || !password) {
         ws.send(JSON.stringify({ type: "auth_error", text: "Nick y contraseña requeridos." }));
@@ -882,6 +970,16 @@ wss.on("connection", (ws) => {
         country: country.slice(0, 40),
         state: state.slice(0, 40),
         city: city.slice(0, 40),
+        accountType: accountType === "empresa" ? "empresa" : "personal",
+        fullName: fullName.slice(0, 60),
+        email: email.slice(0, 80),
+        phone: phone.slice(0, 30),
+        companyName: companyName.slice(0, 80),
+        taxId: taxId.slice(0, 40),
+        companyAddress: companyAddress.slice(0, 120),
+        companyEmail: companyEmail.slice(0, 80),
+        companyPhone: companyPhone.slice(0, 30),
+        legalRep: legalRep.slice(0, 80),
         lastRoom: ""
       };
       await setPassword(nick, password);
@@ -896,6 +994,19 @@ wss.on("connection", (ws) => {
       u.country = accounts[nick].country || "";
       u.state = accounts[nick].state || "";
       u.city = accounts[nick].city || "";
+      u.country = accounts[nick].country || "";
+      u.state = accounts[nick].state || "";
+      u.city = accounts[nick].city || "";
+      u.accountType = accounts[nick].accountType || "personal";
+      u.fullName = accounts[nick].fullName || "";
+      u.email = accounts[nick].email || "";
+      u.phone = accounts[nick].phone || "";
+      u.companyName = accounts[nick].companyName || "";
+      u.taxId = accounts[nick].taxId || "";
+      u.companyAddress = accounts[nick].companyAddress || "";
+      u.companyEmail = accounts[nick].companyEmail || "";
+      u.companyPhone = accounts[nick].companyPhone || "";
+      u.legalRep = accounts[nick].legalRep || "";
       const regionRooms = ensureRegionRooms(u.country, u.state, u.city);
       accounts[nick].lastRoom = pickDefaultRoom(regionRooms);
       u.authenticated = true;
@@ -949,6 +1060,19 @@ wss.on("connection", (ws) => {
       u.country = accounts[nick].country || "";
       u.state = accounts[nick].state || "";
       u.city = accounts[nick].city || "";
+      u.country = accounts[nick].country || "";
+      u.state = accounts[nick].state || "";
+      u.city = accounts[nick].city || "";
+      u.accountType = accounts[nick].accountType || "personal";
+      u.fullName = accounts[nick].fullName || "";
+      u.email = accounts[nick].email || "";
+      u.phone = accounts[nick].phone || "";
+      u.companyName = accounts[nick].companyName || "";
+      u.taxId = accounts[nick].taxId || "";
+      u.companyAddress = accounts[nick].companyAddress || "";
+      u.companyEmail = accounts[nick].companyEmail || "";
+      u.companyPhone = accounts[nick].companyPhone || "";
+      u.legalRep = accounts[nick].legalRep || "";
       const regionRooms = ensureRegionRooms(u.country, u.state, u.city);
       accounts[nick].lastRoom = pickDefaultRoom(regionRooms);
       u.authenticated = true;
@@ -1003,6 +1127,16 @@ wss.on("connection", (ws) => {
           country: oldAccount.country || "",
           state: oldAccount.state || "",
           city: oldAccount.city || "",
+          accountType: oldAccount.accountType || "personal",
+          fullName: oldAccount.fullName || "",
+          email: oldAccount.email || "",
+          phone: oldAccount.phone || "",
+          companyName: oldAccount.companyName || "",
+          taxId: oldAccount.taxId || "",
+          companyAddress: oldAccount.companyAddress || "",
+          companyEmail: oldAccount.companyEmail || "",
+          companyPhone: oldAccount.companyPhone || "",
+          legalRep: oldAccount.legalRep || "",
           lastRoom: oldAccount.lastRoom || ""
         };
         saveUsers();
@@ -1365,6 +1499,16 @@ wss.on("connection", (ws) => {
       const country = String(payload.country || "").trim();
       const state = String(payload.state || "").trim();
       const city = String(payload.city || "").trim();
+      const accountType = String(payload.accountType || "personal").trim();
+      const fullName = String(payload.fullName || "").trim();
+      const email = String(payload.email || "").trim();
+      const phone = String(payload.phone || "").trim();
+      const companyName = String(payload.companyName || "").trim();
+      const taxId = String(payload.taxId || "").trim();
+      const companyAddress = String(payload.companyAddress || "").trim();
+      const companyEmail = String(payload.companyEmail || "").trim();
+      const companyPhone = String(payload.companyPhone || "").trim();
+      const legalRep = String(payload.legalRep || "").trim();
       if (!status) return;
       u.status = status.slice(0, 40);
       if (accounts[u.nick]) {
